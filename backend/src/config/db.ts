@@ -1,9 +1,7 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI)
-  throw new Error("Please define the MONGODB_URI environment variable");
+dotenv.config();
 
 declare global {
   var mongooseCache: {
@@ -17,6 +15,11 @@ let cached =
   (global.mongooseCache = { conn: null, promise: null });
 
 export const connectToDatabase = async () => {
+  const MONGODB_URI = process.env.MONGODB_URI;
+  if (!MONGODB_URI) {
+    throw new Error("Please define the MONGODB_URI environment variable in backend/.env");
+  }
+
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
