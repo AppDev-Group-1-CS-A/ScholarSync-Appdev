@@ -1,5 +1,5 @@
 "use client";
-
+import MobileNav from "@/components/MobileNav";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -26,7 +26,7 @@ const Navbar = () => {
           <span className="logo-text">ScholarSync</span>
         </Link>
 
-        <nav className="w-fit flex gap-7.5 items-center">
+        <nav className="hidden sm:flex w-fit gap-7.5 items-center">
           {/* Regular User Link */}
           {!isAdmin && (
             <Link
@@ -120,6 +120,7 @@ const Navbar = () => {
             )}
           </div>
         </nav>
+        <MobileNav status={status} isAdmin={isAdmin} />
       </div>
     </header>
   );
