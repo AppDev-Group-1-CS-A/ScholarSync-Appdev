@@ -2,15 +2,17 @@
 
 **Project Title:** ScholarSync: Cross-Platform AI-Powered Interactive Study Companion & Knowledge Workspace  
 
-**Submitted By:** [Insert Group Name]  
+**Submitted By:** Group 1  
 **Members & Roles:**  
-- **[Member 1 Name]** – Project Lead & Backend API Architect  
-- **[Member 2 Name]** – Frontend Developer & UI/UX Specialist  
-- **[Member 3 Name]** – AI Systems & RAG Pipeline Engineer  
-- **[Member 4 Name]** – Database & Cross-Platform Mobile/Desktop Engineer  
+- **Keith Brian Laranjo** – Project Lead & Full-Stack System Architect  
+- **Vencie Sales** – Backend REST API & AI Systems Lead Engineer  
+- **Aron Avila** – Frontend & Mobile UI Developer  
+- **Vincel Esguera** – Backend API & Data Operations Specialist  
+- **Jerlyn Valdez** – UI/UX Design & Mobile Usability Specialist  
+- **Crystil Tubog** – Quality Assurance (QA) & System Documentation Specialist  
 
 **Submitted To:** [Instructor/Professor Name]  
-**Date:** October 14, 2026  
+**Date:** October 2026  
 
 ---
 
@@ -68,6 +70,17 @@ In higher education and self-directed study, students and researchers routinely 
 - Proprietary DRM-protected e-book format decryption (e.g., Apple Books FairPlay or Amazon Kindle formats).
 - Offline speech-to-speech AI generation (voice LLM processing requires cloud connectivity to LLM/TTS endpoints).
 - Collaborative multi-user simultaneous document editing (e.g., live multi-cursor Google Docs editing).
+
+### 3.3 Team Work Breakdown & Responsibility Matrix (6-Member Pod Structure)
+
+| Member | Assigned Role | Functional Pod | Primary Modules & Key Deliverables |
+| :--- | :--- | :--- | :--- |
+| **Keith Brian Laranjo** | **Project Lead & Full-Stack System Architect** | Lead & Integration | Full-stack decoupling, repository governance, authentication (Clerk/JWT), PR code reviews, and cross-module integration. |
+| **Vencie Sales** | **Backend REST API & AI Systems Lead** | Backend & AI Pod | Standalone Express server (`localhost:5000`), Groq LLM integration, automated chapter summarization endpoint, and error handling middleware. |
+| **Aron Avila** | **Frontend & Mobile UI Developer** | Frontend & UI Pod | Responsive web reader, mobile slide-out navigation drawer ([#26](https://github.com/AppDev-Group-1/ScholarSync-Appdev/issues/26)), reading progress bar ([#27](https://github.com/AppDev-Group-1/ScholarSync-Appdev/issues/27)), and Tailwind styling. |
+| **Vincel Esguera** | **Backend API & Data Operations Specialist** | Backend & AI Pod | MongoDB Mongoose schema verification, one-click demo book seeder utility ([#30](https://github.com/AppDev-Group-1/ScholarSync-Appdev/issues/30)), and database collection population. |
+| **Jerlyn Valdez** | **UI/UX Design & Mobile Usability Specialist** | Frontend & UI Pod | Mobile viewport testing, touch target sizing, UI/UX workflow review, user acceptance verification, and frontend co-authoring. |
+| **Crystil Tubog** | **Quality Assurance (QA) & System Documentation** | QA & Docs Pod | Interactive Swagger / OpenAPI documentation ([#28](https://github.com/AppDev-Group-1/ScholarSync-Appdev/issues/28)), API test case design, final defense report, and presentation materials. |
 
 ---
 
