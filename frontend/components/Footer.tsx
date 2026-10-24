@@ -13,7 +13,7 @@ const Footer = () => {
         <div className="flex items-center gap-1.5 text-sm font-bold text-[#212a3b]">
           <span>Developed by</span>
           <Link 
-            href="https://github.com/AppDev-Group-1" 
+            href="https://github.com/AppDev-Group-1-CS-A" 
             target="_blank" 
             className="text-[#663820] hover:underline transition-all underline-offset-4"
           >
