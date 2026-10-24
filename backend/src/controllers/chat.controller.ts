@@ -129,3 +129,55 @@ ${context || "No specific segments found for this query."}`;
     });
   }
 };
+
+export const summarizeBookSection = async (req: Request, res: Response) => {
+  try {
+    const { bookId, bookTitle = "this textbook" } = req.body;
+
+    if (!bookId) {
+      return res.status(400).json({ success: false, error: "Missing bookId" });
+    }
+
+    const groq = getGroq();
+    const segments = await findBookSegments(bookId, "summary concepts key points", 5);
+
+    const context = segments.length > 0
+      ? segments.map((s: any) => s.content).join("\n\n")
+      : "General review of the material.";
+
+    const prompt = `You are an expert academic tutor for "${bookTitle}".
+Analyze the provided book context and return a structured study summary formatted with Markdown:
+
+### 📌 Executive Summary
+(2-3 sentences explaining the core subject)
+
+### 🔑 Key Takeaways
+- Bullet point 1
+- Bullet point 2
+- Bullet point 3
+
+### 📖 Important Terminology
+- **Term 1**: Definition
+- **Term 2**: Definition
+
+CONTEXT:
+${context}`;
+
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "openai/gpt-oss-120b",
+      temperature: 0.4,
+      max_tokens: 1000,
+    });
+
+    const summaryText = completion.choices[0]?.message?.content || "";
+
+    return res.json({
+      success: true,
+      summary: summaryText,
+    });
+  } catch (error) {
+    console.error("Summary error:", error);
+    return res.status(500).json({ success: false, error: "Failed to generate summary" });
+  }
+};
