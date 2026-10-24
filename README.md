@@ -100,6 +100,8 @@ npm run dev
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/health` | Server health status |
+| `GET` | `/api-docs` | **Interactive Swagger UI portal** |
+| `GET` | `/api-docs.json` | OpenAPI 3.0 specification JSON |
 | `GET` | `/api/books?userId={id}&search={q}` | Retrieve user library with optional search |
 | `GET` | `/api/books/slug/:slug` | Retrieve book metadata by unique slug |
 | `GET` | `/api/books/:id/search?q={query}` | Search indexed text segments |

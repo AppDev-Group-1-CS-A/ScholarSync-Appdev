@@ -39,10 +39,21 @@ The server will start on `http://localhost:5000`.
 
 ---
 
+## 📑 Interactive Swagger API Documentation
+Open your browser and navigate to:
+👉 **`http://localhost:5000/api-docs`**
+
+- **Interactive Playground:** Test any endpoint directly from your browser without needing Postman.
+- **OpenAPI 3.0 Specification:** Raw JSON schema available at **`http://localhost:5000/api-docs.json`**.
+
+---
+
 ## 📡 REST API Documentation
 
 ### Health Check
 - **`GET /health`** - Verifies server status.
+- **`GET /api-docs`** - Interactive Swagger UI portal.
+- **`GET /api-docs.json`** - OpenAPI 3.0 specification in JSON format.
 
 ### 📚 Books
 - **`GET /api/books?userId=<userId>&search=<query>`** - Get books for a user (with optional search filter).
