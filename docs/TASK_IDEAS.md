@@ -188,7 +188,7 @@ Pick **1 small task per person / pair** for the next 2–3 days:
 | :--- | :--- | :--- | :--- |
 | **Keith Brian Laranjo (Lead)** | **System Integration & Branch Reviews** | PR Reviews & Dev Server | Oversees local environment setup, reviews PRs from all members, ensures zero conflicts. |
 | **Aron Avila & Jerlyn Valdez** | **Mobile Hamburger Menu & Slide-out Drawer** | **[MOB-01] (#26)** | Aron codes the component on his laptop while Jerlyn tests mobile responsiveness and UI flow. |
-| **Aron Avila & Jerlyn Valdez** | **Reading Progress Bar & Read Time Badge** | **[FE-01] (#27)** | Clean React logic; Jerlyn verifies word-count calculation & Aron implements the progress bar. |
+| **Aron Avila & Jerlyn Valdez** | **Reader Appearance Controls & Themes** | **[FE-01] (#27)** | Aron manages React state & font scaling while Jerlyn designs Sepia/Dark palettes and mobile touch targets. |
 | **Vencie Sales & Vincel Esguera** | **Automated Chapter Key Takeaways** | **[AI-01] (#29)** | Connects Groq LLM with a dedicated summarization prompt (`POST /api/chat/summary`). |
 | **Vincel Esguera & Vencie Sales** | **One-Click Demo Textbook Seeder** | **[DB-01] (#30)** | Populates local MongoDB so the instructor never sees an empty bookshelf during demo. |
 | **Crystil Tubog & Keith / Vencie** | **Interactive Swagger / OpenAPI Docs** | **[BE-01] (#28)** | Crystil structures API route specifications and descriptions while pairing on code implementation. |
