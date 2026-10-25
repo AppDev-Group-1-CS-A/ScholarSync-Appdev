@@ -303,15 +303,15 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       <div
         className={`px-4 py-3 flex items-center justify-between border-b transition-colors duration-300 ${currentStyles.header}`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/"
-            className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
+            className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors shrink-0"
           >
             <ChevronLeft size={20} />
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-8 relative shadow-md rounded overflow-hidden hidden sm:block">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-10 w-8 relative shadow-md rounded overflow-hidden hidden sm:block shrink-0">
               <Image
                 src={book.coverURL || "/assets/book-cover.svg"}
                 alt={book.title}
@@ -319,17 +319,17 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                 className="object-cover"
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-sm font-bold line-clamp-1">
                 {book.title}
               </h2>
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#663820] dark:text-[#f5a97f]">
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#663820] dark:text-[#f5a97f] shrink-0">
                   <Sparkles size={10} /> Student Assistant
                 </span>
-                <span className="h-1 w-1 bg-black/20 dark:bg-white/20 rounded-full" />
+                <span className="h-1 w-1 bg-black/20 dark:bg-white/20 rounded-full shrink-0" />
                 <span
-                  className={`text-[10px] font-medium ${currentStyles.headerSubtitle}`}
+                  className={`text-[10px] font-medium truncate ${currentStyles.headerSubtitle}`}
                 >
                   {isVoiceMode
                     ? isActive
@@ -342,7 +342,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Reader Appearance Controls (Light, Sepia, Dark + Font Scaling) */}
           <ReaderAppearanceControls
             theme={theme}
