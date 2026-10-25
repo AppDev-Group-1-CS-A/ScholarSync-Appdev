@@ -23,6 +23,9 @@ import {
   Minimize2,
   PanelLeftClose,
   PanelLeftOpen,
+  Plus,
+  MessageSquare,
+  Clock,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,6 +37,14 @@ import ReaderAppearanceControls, {
 } from "./ReaderAppearanceControls";
 import ReaderStudyPane from "./ReaderStudyPane";
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: Messages[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 const ChatInterface = ({ book }: { book: IBook }) => {
   const [messages, setMessages] = useState<Messages[]>([]);
   const [input, setInput] = useState("");
@@ -42,13 +53,45 @@ const ChatInterface = ({ book }: { book: IBook }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Left Sidebar State (Claude style collapsible sidebar)
+  // Left Sidebar State (Claude style collapsible sidebar + Chat History)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarTab, setSidebarTab] = useState<"history" | "study">("history");
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [readingProgress, setReadingProgress] = useState(0);
 
   // Reader Appearance Controls (FE-01: Light, Sepia & Dark Mode + Font Scaling)
   const [theme, setTheme] = useState<ReaderTheme>("light");
   const [fontSize, setFontSize] = useState<number>(16);
+
+  // Load chat sessions from localStorage for this book
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`scholarsync_chats_${book._id}`);
+      if (saved) {
+        const parsed: ChatSession[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSessions(parsed);
+          setActiveSessionId(parsed[0].id);
+          setMessages(parsed[0].messages || []);
+          return;
+        }
+      }
+    } catch {
+      // Ignore
+    }
+
+    const defaultSession: ChatSession = {
+      id: `session_${Date.now()}`,
+      title: "New Conversation",
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    setSessions([defaultSession]);
+    setActiveSessionId(defaultSession.id);
+    setMessages([]);
+  }, [book._id]);
 
   // Responsive sidebar: collapse by default on mobile screens
   useEffect(() => {
@@ -125,6 +168,12 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       sidebar: "bg-[#fdfcf9] border-black/10 text-[#212a3b]",
       sidebarHeader: "bg-[#f3e4c7] border-black/10 text-[#212a3b]",
       sidebarFooter: "bg-[#f7f3eb] border-black/10 text-[#212a3b]",
+      tabActive: "bg-white text-[#663820] shadow-xs font-bold",
+      tabInactive: "text-[#212a3b]/70 hover:text-[#212a3b] hover:bg-black/5",
+      sessionActive:
+        "bg-[#f3e4c7] text-[#663820] font-bold shadow-xs border border-[#dec8a0]",
+      sessionInactive:
+        "hover:bg-black/5 text-[#212a3b] border border-transparent",
       messagesBg: "bg-[#fafafa]",
       emptyHeading: "text-[#212a3b]",
       emptySubtext: "text-[#3d485e]",
@@ -148,6 +197,12 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       sidebar: "bg-[#f8eed8] border-[#dec8a0] text-[#433422]",
       sidebarHeader: "bg-[#eed8b6] border-[#dec8a0] text-[#433422]",
       sidebarFooter: "bg-[#ebd9b8] border-[#dec8a0] text-[#433422]",
+      tabActive: "bg-[#fff8ea] text-[#663820] shadow-xs font-bold",
+      tabInactive: "text-[#433422]/70 hover:text-[#433422] hover:bg-black/5",
+      sessionActive:
+        "bg-[#eed8b6] text-[#433422] font-bold shadow-xs border border-[#dec8a0]",
+      sessionInactive:
+        "hover:bg-black/5 text-[#433422] border border-transparent",
       messagesBg: "bg-[#f7ebd2]",
       emptyHeading: "text-[#433422]",
       emptySubtext: "text-[#663820]",
@@ -171,6 +226,12 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       sidebar: "bg-[#141520] border-[#363a4f] text-[#cad3f5]",
       sidebarHeader: "bg-[#1e2030] border-[#363a4f] text-[#cad3f5]",
       sidebarFooter: "bg-[#181926] border-[#363a4f] text-[#cad3f5]",
+      tabActive: "bg-[#24273a] text-[#f5a97f] shadow-xs font-bold",
+      tabInactive: "text-[#cad3f5]/70 hover:text-[#cad3f5] hover:bg-white/5",
+      sessionActive:
+        "bg-[#24273a] text-[#f5a97f] font-bold shadow-xs border border-[#363a4f]",
+      sessionInactive:
+        "hover:bg-white/5 text-[#cad3f5] border border-transparent",
       messagesBg: "bg-[#141520]",
       emptyHeading: "text-[#cad3f5]",
       emptySubtext: "text-[#a5adcb]",
@@ -225,6 +286,159 @@ const ChatInterface = ({ book }: { book: IBook }) => {
     currentUserMessage,
   ]);
 
+  // Session persistence helper
+  const persistSessionMessages = (
+    updatedMessages: Messages[],
+    customTitle?: string,
+  ) => {
+    setSessions((prev) => {
+      const existingIndex = prev.findIndex((s) => s.id === activeSessionId);
+      let nextSessions: ChatSession[];
+
+      if (existingIndex >= 0) {
+        const currentSession = prev[existingIndex];
+        let newTitle = currentSession.title;
+        if (customTitle) {
+          newTitle = customTitle;
+        } else if (
+          (!newTitle || newTitle === "New Conversation") &&
+          updatedMessages.length > 0
+        ) {
+          const firstUserMsg = updatedMessages.find((m) => m.role === "user");
+          if (firstUserMsg) {
+            newTitle =
+              firstUserMsg.content.length > 36
+                ? firstUserMsg.content.slice(0, 36).trim() + "..."
+                : firstUserMsg.content.trim();
+          }
+        }
+
+        const updatedSession: ChatSession = {
+          ...currentSession,
+          title: newTitle,
+          messages: updatedMessages,
+          updatedAt: Date.now(),
+        };
+
+        nextSessions = [...prev];
+        nextSessions[existingIndex] = updatedSession;
+      } else {
+        const newSession: ChatSession = {
+          id: activeSessionId || `session_${Date.now()}`,
+          title:
+            customTitle ||
+            (updatedMessages[0]?.content
+              ? updatedMessages[0].content.slice(0, 36) + "..."
+              : "New Conversation"),
+          messages: updatedMessages,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        nextSessions = [newSession, ...prev];
+      }
+
+      try {
+        localStorage.setItem(
+          `scholarsync_chats_${book._id}`,
+          JSON.stringify(nextSessions),
+        );
+      } catch {
+        // Ignore
+      }
+      return nextSessions;
+    });
+  };
+
+  const handleSelectSession = (sessionId: string) => {
+    const selected = sessions.find((s) => s.id === sessionId);
+    if (selected) {
+      setActiveSessionId(sessionId);
+      setMessages(selected.messages || []);
+      if (typeof window !== "undefined" && window.innerWidth < 1024) {
+        setIsSidebarOpen(false);
+      }
+    }
+  };
+
+  const handleNewChat = () => {
+    const newSession: ChatSession = {
+      id: `session_${Date.now()}`,
+      title: "New Conversation",
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    const nextSessions = [newSession, ...sessions];
+    setSessions(nextSessions);
+    setActiveSessionId(newSession.id);
+    setMessages([]);
+    try {
+      localStorage.setItem(
+        `scholarsync_chats_${book._id}`,
+        JSON.stringify(nextSessions),
+      );
+    } catch {
+      // Ignore
+    }
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const handleDeleteSession = (
+    e: React.MouseEvent,
+    sessionIdToDelete: string,
+  ) => {
+    e.stopPropagation();
+    const nextSessions = sessions.filter((s) => s.id !== sessionIdToDelete);
+
+    if (nextSessions.length === 0) {
+      const fallback: ChatSession = {
+        id: `session_${Date.now()}`,
+        title: "New Conversation",
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      setSessions([fallback]);
+      setActiveSessionId(fallback.id);
+      setMessages([]);
+      try {
+        localStorage.setItem(
+          `scholarsync_chats_${book._id}`,
+          JSON.stringify([fallback]),
+        );
+      } catch {
+        // Ignore
+      }
+    } else {
+      setSessions(nextSessions);
+      if (activeSessionId === sessionIdToDelete) {
+        setActiveSessionId(nextSessions[0].id);
+        setMessages(nextSessions[0].messages || []);
+      }
+      try {
+        localStorage.setItem(
+          `scholarsync_chats_${book._id}`,
+          JSON.stringify(nextSessions),
+        );
+      } catch {
+        // Ignore
+      }
+    }
+  };
+
+  const formatRelativeTime = (timestamp: number) => {
+    const diff = Math.floor((Date.now() - timestamp) / 1000);
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return new Date(timestamp).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   const handleSendMessage = async (text?: string) => {
     const messageText = text || input;
     if (!messageText.trim() || isLoading) return;
@@ -250,7 +464,9 @@ const ChatInterface = ({ book }: { book: IBook }) => {
     }
 
     const userMsg: Messages = { role: "user", content: messageText };
-    setMessages((prev) => [...prev, userMsg]);
+    const updatedWithUser = [...messages, userMsg];
+    setMessages(updatedWithUser);
+    persistSessionMessages(updatedWithUser);
     setInput("");
     setIsLoading(true);
 
@@ -263,10 +479,13 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       );
 
       if (result.success && result.data) {
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: result.data as string },
-        ]);
+        const assistantMsg: Messages = {
+          role: "assistant",
+          content: result.data as string,
+        };
+        const updatedWithAssistant = [...updatedWithUser, assistantMsg];
+        setMessages(updatedWithAssistant);
+        persistSessionMessages(updatedWithAssistant);
       } else {
         toast.error(result.error || "Failed to get a response");
       }
@@ -299,6 +518,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
     if (messages.length === 0 && vapiMessages.length === 0) return;
     if (confirm("Clear all messages in this session?")) {
       setMessages([]);
+      persistSessionMessages([]);
       if (isActive) stopVapi();
     }
   };
@@ -404,15 +624,139 @@ const ChatInterface = ({ book }: { book: IBook }) => {
           </button>
         </div>
 
-        {/* Sidebar Body: ReaderStudyPane */}
-        <div className="flex-1 overflow-hidden">
-          <ReaderStudyPane
-            book={book}
-            theme={theme}
-            fontSize={fontSize}
-            onQuoteToChat={handleQuoteToChat}
-            onAskConcept={handleAskConcept}
-          />
+        {/* New Chat Action */}
+        <div className="p-3 pb-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleNewChat}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#663820] hover:bg-[#7a4427] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer group"
+          >
+            <Plus
+              size={15}
+              className="group-hover:rotate-90 transition-transform duration-200"
+            />
+            <span>New Chat</span>
+          </button>
+        </div>
+
+        {/* Sidebar Tabs: Conversations vs Study Guide */}
+        <div className="px-3 pb-2 flex gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setSidebarTab("history")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+              sidebarTab === "history"
+                ? currentStyles.tabActive
+                : currentStyles.tabInactive
+            }`}
+          >
+            <MessageSquare size={13} />
+            <span>History</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/10 dark:bg-white/10 font-bold">
+              {sessions.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSidebarTab("study")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+              sidebarTab === "study"
+                ? currentStyles.tabActive
+                : currentStyles.tabInactive
+            }`}
+          >
+            <BookOpen size={13} />
+            <span>Study Guide</span>
+          </button>
+        </div>
+
+        {/* Sidebar Body */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {sidebarTab === "history" ? (
+            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
+              <div className="flex items-center justify-between px-1 pb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">
+                  Recent Conversations
+                </span>
+                <span className="text-[10px] opacity-50 font-mono">
+                  {sessions.length}{" "}
+                  {sessions.length === 1 ? "thread" : "threads"}
+                </span>
+              </div>
+
+              {sessions.length === 0 ? (
+                <div className="text-center py-8 px-4 opacity-60">
+                  <MessageCircle
+                    size={28}
+                    className="mx-auto mb-2 opacity-40"
+                  />
+                  <p className="text-xs font-medium">
+                    No saved conversations yet
+                  </p>
+                  <p className="text-[11px] mt-1 opacity-75">
+                    Start a chat or ask a question to begin
+                  </p>
+                </div>
+              ) : (
+                sessions.map((session) => {
+                  const isActive = session.id === activeSessionId;
+                  const messageCount = session.messages?.length || 0;
+                  return (
+                    <div
+                      key={session.id}
+                      onClick={() => handleSelectSession(session.id)}
+                      className={`group relative flex items-start gap-2.5 p-2.5 rounded-xl cursor-pointer transition-all ${
+                        isActive
+                          ? currentStyles.sessionActive
+                          : currentStyles.sessionInactive
+                      }`}
+                    >
+                      <MessageSquare
+                        size={15}
+                        className={`shrink-0 mt-0.5 ${
+                          isActive
+                            ? "text-[#663820] dark:text-[#f5a97f]"
+                            : "opacity-60 group-hover:opacity-100"
+                        }`}
+                      />
+                      <div className="flex-1 min-w-0 pr-6">
+                        <p className="text-xs font-medium truncate leading-tight">
+                          {session.title || "Conversation"}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-1 text-[10px] opacity-60">
+                          <Clock size={10} />
+                          <span>{formatRelativeTime(session.updatedAt)}</span>
+                          <span>•</span>
+                          <span>
+                            {messageCount}{" "}
+                            {messageCount === 1 ? "msg" : "msgs"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Delete Conversation Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteSession(e, session.id)}
+                        className="absolute right-2 top-2.5 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 hover:text-red-500 transition-all"
+                        title="Delete conversation"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <ReaderStudyPane
+              book={book}
+              theme={theme}
+              fontSize={fontSize}
+              onQuoteToChat={handleQuoteToChat}
+              onAskConcept={handleAskConcept}
+            />
+          )}
         </div>
 
         {/* Sidebar Footer */}
