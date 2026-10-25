@@ -25,8 +25,8 @@ export default async function BookDetailsPage({
   const book = result.data;
 
   return (
-    <div className="w-full min-h-screen pt-14 sm:pt-16 pb-2 px-2 sm:px-4 md:px-6 max-w-[1780px] mx-auto flex flex-col justify-start">
+    <main className="fixed inset-0 z-[60] w-screen h-screen flex flex-col overflow-hidden bg-white dark:bg-[#181926]">
       <ChatInterface book={book} />
-    </div>
+    </main>
   );
 }

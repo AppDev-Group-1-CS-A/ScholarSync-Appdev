@@ -21,6 +21,8 @@ import {
   MessageCircle,
   MoreVertical,
   Columns2,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -40,6 +42,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +54,27 @@ const ChatInterface = ({ book }: { book: IBook }) => {
   // Reader Appearance Controls (FE-01: Light, Sepia & Dark Mode + Font Scaling)
   const [theme, setTheme] = useState<ReaderTheme>("light");
   const [fontSize, setFontSize] = useState<number>(16);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    try {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch {
+      // Ignore
+    }
+  };
 
   useEffect(() => {
     try {
@@ -93,7 +117,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
   // Theme-aware design tokens
   const themeStyles = {
     light: {
-      container: "bg-white border-black/5 text-[#212a3b]",
+      container: "bg-white text-[#212a3b]",
       header: "bg-[#f3e4c7] border-black/10 text-[#212a3b]",
       headerSubtitle: "text-gray-500",
       viewModeActive: "bg-white text-[#663820] shadow-xs font-bold",
@@ -116,7 +140,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       loadingBubble: "bg-white border border-black/5",
     },
     sepia: {
-      container: "bg-[#fbf0d9] border-[#dec8a0] text-[#433422]",
+      container: "bg-[#fbf0d9] text-[#433422]",
       header: "bg-[#f0dfbe] border-[#dec8a0] text-[#433422]",
       headerSubtitle: "text-[#663820]",
       viewModeActive: "bg-[#fff8ea] text-[#663820] shadow-xs font-bold",
@@ -139,7 +163,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       loadingBubble: "bg-[#fff8ea] border border-[#dec8a0]",
     },
     dark: {
-      container: "bg-[#181926] border-[#363a4f] text-[#cad3f5]",
+      container: "bg-[#181926] text-[#cad3f5]",
       header: "bg-[#1e2030] border-[#363a4f] text-[#cad3f5]",
       headerSubtitle: "text-[#a5adcb]",
       viewModeActive: "bg-[#24273a] text-[#f5a97f] shadow-xs font-bold",
@@ -344,21 +368,30 @@ const ChatInterface = ({ book }: { book: IBook }) => {
   return (
     <div
       data-theme={theme}
-      className={`flex flex-col h-[calc(100vh-76px)] sm:h-[calc(100vh-84px)] w-full max-w-[1740px] mx-auto rounded-2xl shadow-soft-lg overflow-hidden border transition-colors duration-300 ${currentStyles.container}`}
+      className={`flex flex-col h-full w-full overflow-hidden transition-colors duration-300 ${currentStyles.container}`}
     >
       {/* Top Header / Navigation */}
       <div
         className={`px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between border-b transition-colors duration-300 gap-2 shrink-0 ${currentStyles.header}`}
       >
         {/* Left: Back & Book Details */}
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Link
             href="/"
-            className="p-1.5 sm:p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors shrink-0"
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0 group"
             title="Back to Library"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft
+              size={18}
+              className="group-hover:-translate-x-0.5 transition-transform"
+            />
+            <span className="text-xs font-semibold hidden sm:inline">
+              Library
+            </span>
           </Link>
+
+          <div className="h-5 w-px bg-black/10 dark:bg-white/10 hidden sm:block shrink-0" />
+
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="h-9 w-7 sm:h-10 sm:w-8 relative shadow-sm rounded overflow-hidden hidden sm:block shrink-0 border border-black/10">
               <Image
@@ -471,7 +504,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
           </div>
         </div>
 
-        {/* Right: Appearance, Voice Toggle, Menu */}
+        {/* Right: Appearance, Voice Toggle, Fullscreen, Menu */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Reader Appearance Controls (Light, Sepia, Dark + Font Scaling) */}
           <ReaderAppearanceControls
@@ -499,6 +532,16 @@ const ChatInterface = ({ book }: { book: IBook }) => {
             <span className="hidden lg:inline">
               {isVoiceMode ? "Voice On" : "Voice Off"}
             </span>
+          </button>
+
+          {/* Fullscreen Mode Toggle */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="p-1.5 sm:p-2 rounded-full transition-all opacity-70 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10"
+            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
 
           {/* More Options Menu (Three Dots) */}
