@@ -129,3 +129,70 @@ ${context || "No specific segments found for this query."}`;
     });
   }
 };
+
+export const summarizeBookSection = async (req: Request, res: Response) => {
+  try {
+    const { bookId, bookTitle = "this textbook" } = req.body;
+
+    if (!bookId) {
+      return res.status(400).json({ success: false, error: "Missing bookId" });
+    }
+
+    if (typeof bookId !== "string" || !mongoose.Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({ success: false, error: "Invalid bookId" });
+    }
+
+    const groq = getGroq();
+    const segments = await findBookSegments(bookId, "summary concepts key points", 5);
+
+    const contextSegments =
+      segments.length > 0
+        ? segments
+        : await BookSegment.find({ bookId: new mongoose.Types.ObjectId(bookId) })
+            .select("content segmentIndex")
+            .sort({ segmentIndex: 1 })
+            .limit(5)
+            .lean();
+
+    if (contextSegments.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "No book content found for this bookId",
+      });
+    }
+
+    const context = contextSegments.map((segment) => segment.content).join("\n\n");
+
+    const prompt = `You are an expert academic tutor for "${bookTitle}".
+Analyze only the provided book context and return a concise, accurate study summary formatted with Markdown. Do not invent details that are not supported by the context.
+
+### 📌 Executive Summary
+(2-3 sentences explaining the core subject)
+
+### 🔑 Key Takeaways
+(3-5 concise bullet points)
+
+### 📖 Important Terminology
+(List important terms from the context with their definitions)
+
+CONTEXT:
+${context}`;
+
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "openai/gpt-oss-120b",
+      temperature: 0.4,
+      max_tokens: 1000,
+    });
+
+    const summaryText = completion.choices[0]?.message?.content || "";
+
+    return res.json({
+      success: true,
+      data: summaryText,
+    });
+  } catch (error) {
+    console.error("Summary error:", error);
+    return res.status(500).json({ success: false, error: "Failed to generate summary" });
+  }
+};
