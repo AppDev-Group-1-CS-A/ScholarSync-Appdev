@@ -1,22 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, BookOpen, PlusCircle, LogOut, ShieldAlert } from "lucide-react";
+import { Menu, X, BookOpen, PlusCircle, LogOut, ShieldAlert, User } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 
 interface MobileNavProps {
   status: "authenticated" | "unauthenticated" | "loading";
   isAdmin?: boolean;
+  session?: {
+    userId: string;
+    firstName: string;
+    email: string;
+    role: string;
+  } | null;
 }
 
-export default function MobileNav({ status, isAdmin }: MobileNavProps) {
+export default function MobileNav({ status, isAdmin, session }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
   const closeMenu = () => setIsOpen(false);
+
+  // Lock background scroll when drawer is open & handle Escape key
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          closeMenu();
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = "unset";
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = "unset";
+    }
+  }, [isOpen]);
 
   return (
     <div className="sm:hidden">
@@ -130,16 +155,42 @@ export default function MobileNav({ status, isAdmin }: MobileNavProps) {
               </Link>
             </div>
           ) : status === "authenticated" ? (
-            <SignOutButton redirectUrl="/sign-in">
-              <button
-                type="button"
-                onClick={closeMenu}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm hover:bg-red-100 transition-colors"
-              >
-                <LogOut size={16} />
-                <span>Sign Out</span>
-              </button>
-            </SignOutButton>
+            <div className="flex flex-col gap-3">
+              {/* User Profile Card */}
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-black/5">
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                    isAdmin
+                      ? "bg-[#212a3b] text-white"
+                      : "bg-[#f3e4c7] text-[#663820]"
+                  }`}
+                >
+                  <User size={18} />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-semibold text-sm text-[#212a3b] truncate">
+                    {session?.firstName || "Scholar"} {isAdmin && "(Admin)"}
+                  </span>
+                  {session?.email && (
+                    <span className="text-xs text-gray-500 truncate">
+                      {session.email}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Sign Out Button */}
+              <SignOutButton redirectUrl="/sign-in">
+                <button
+                  type="button"
+                  onClick={closeMenu}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-sm hover:bg-red-100 transition-colors"
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </button>
+              </SignOutButton>
+            </div>
           ) : null}
         </div>
       </div>

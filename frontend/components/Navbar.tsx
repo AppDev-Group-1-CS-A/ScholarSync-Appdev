@@ -121,7 +121,7 @@ const Navbar = () => {
             )}
           </div>
         </nav>
-        <MobileNav status={status} isAdmin={isAdmin} />
+        <MobileNav status={status} isAdmin={isAdmin} session={session} />
       </div>
     </header>
   );
