@@ -52,7 +52,7 @@ const HeroSection = async () => {
 
             <div className="flex items-center gap-2 mb-4">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#663820] bg-white px-2 py-0.5 rounded border border-black/5 shadow-sm">
-                Developed by Keithlar
+                Developed by NerdOrgs
               </span>
             </div>
 

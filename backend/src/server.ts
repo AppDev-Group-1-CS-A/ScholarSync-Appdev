@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import swaggerUi from "swagger-ui-express";
 import { connectToDatabase } from "./config/db";
+import { swaggerSpec } from "./config/swagger";
 import apiRoutes from "./routes";
 
 dotenv.config();
@@ -47,6 +49,22 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Swagger UI Documentation
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: "ScholarSync API Docs",
+    customCss: ".swagger-ui .topbar { display: none }",
+  })
+);
+
+// Expose raw OpenAPI JSON specification
+app.get("/api-docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.json(swaggerSpec);
+});
+
 // Mount API routes
 app.use("/api", apiRoutes);
 
@@ -81,6 +99,7 @@ const startServer = async () => {
       console.log(`📡 URL: http://localhost:${PORT}`);
       console.log(`🩺 Health: http://localhost:${PORT}/health`);
       console.log(`📚 API Root: http://localhost:${PORT}/api`);
+      console.log(`📑 Swagger Docs: http://localhost:${PORT}/api-docs`);
       console.log(`===========================================`);
     });
   } catch (error) {
