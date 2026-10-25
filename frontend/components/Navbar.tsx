@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useSession } from "@/hooks/useSession";
 import { SignOutButton } from "@clerk/nextjs";
 import { LogOut, User, ShieldAlert } from "lucide-react";
+import MobileNav from "@/components/MobileNav";
 
 const Navbar = () => {
   const pathName = usePathname();
@@ -26,7 +27,7 @@ const Navbar = () => {
           <span className="logo-text">ScholarSync</span>
         </Link>
 
-        <nav className="w-fit flex gap-7.5 items-center">
+        <nav className="hidden sm:flex w-fit gap-7.5 items-center">
           {/* Regular User Link */}
           {!isAdmin && (
             <Link
@@ -120,6 +121,7 @@ const Navbar = () => {
             )}
           </div>
         </nav>
+        <MobileNav status={status} isAdmin={isAdmin} />
       </div>
     </header>
   );
