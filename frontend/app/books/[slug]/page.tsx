@@ -1,8 +1,5 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-
 import { getBookBySlug } from "@/lib/actions/book.actions";
 import ChatInterface from "@/components/ChatInterface";
 
@@ -28,11 +25,7 @@ export default async function BookDetailsPage({
   const book = result.data;
 
   return (
-    <div className="book-page-container">
-      <Link href="/" className="back-btn-floating">
-        <ArrowLeft className="size-6 text-[#212a3b]" />
-      </Link>
-
+    <div className="w-full min-h-screen pt-14 sm:pt-16 pb-2 px-2 sm:px-4 md:px-6 max-w-[1780px] mx-auto flex flex-col justify-start">
       <ChatInterface book={book} />
     </div>
   );
