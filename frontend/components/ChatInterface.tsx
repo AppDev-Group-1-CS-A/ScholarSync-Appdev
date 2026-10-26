@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type CSSProperties } from "react";
 import { IBook, Messages } from "@/types";
 import {
   Send,
@@ -26,6 +26,62 @@ import Link from "next/link";
 import { chatWithBook } from "@/lib/actions/chat.actions";
 import { toast } from "sonner";
 import useVapi from "@/hooks/useVapi";
+import ReaderAppearanceControls, {
+  type ReaderTheme,
+} from "@/components/ReaderAppearanceControls";
+
+const READER_THEME_KEY = "scholarsync_reader_theme";
+const READER_FONTSIZE_KEY = "scholarsync_reader_fontsize";
+const DEFAULT_FONT_SIZE = 16;
+
+const readerThemePalette: Record<
+  ReaderTheme,
+  {
+    background: string;
+    panel: string;
+    panelStrong: string;
+    text: string;
+    muted: string;
+    border: string;
+    input: string;
+    accent: string;
+    accentText: string;
+  }
+> = {
+  light: {
+    background: "#ffffff",
+    panel: "#f3e4c7",
+    panelStrong: "#f8f1e4",
+    text: "#212a3b",
+    muted: "#3d485e",
+    border: "rgba(33, 42, 59, 0.12)",
+    input: "#f5f5f5",
+    accent: "#663820",
+    accentText: "#ffffff",
+  },
+  sepia: {
+    background: "#fbf0d9",
+    panel: "#f3dfb7",
+    panelStrong: "#f8ebd0",
+    text: "#433422",
+    muted: "#5d4835",
+    border: "rgba(67, 52, 34, 0.18)",
+    input: "#f8f3ea",
+    accent: "#7c4f2b",
+    accentText: "#fffaf5",
+  },
+  dark: {
+    background: "#181926",
+    panel: "#202536",
+    panelStrong: "#262d3d",
+    text: "#cad3f5",
+    muted: "#b7bfd6",
+    border: "rgba(202, 211, 245, 0.12)",
+    input: "#1d2333",
+    accent: "#8ab4f8",
+    accentText: "#0b1220",
+  },
+};
 
 const ChatInterface = ({ book }: { book: IBook }) => {
   const [messages, setMessages] = useState<Messages[]>([]);
@@ -33,8 +89,37 @@ const ChatInterface = ({ book }: { book: IBook }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [readerTheme, setReaderTheme] = useState<ReaderTheme>("light");
+  const [fontSize, setFontSize] = useState<number>(DEFAULT_FONT_SIZE);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const savedTheme = window.localStorage.getItem(READER_THEME_KEY) as
+      | ReaderTheme
+      | null;
+    if (savedTheme === "light" || savedTheme === "sepia" || savedTheme === "dark") {
+      setReaderTheme(savedTheme);
+    }
+
+    const savedFontSize = Number(window.localStorage.getItem(READER_FONTSIZE_KEY));
+    if (!Number.isNaN(savedFontSize)) {
+      const nextFontSize = Math.min(22, Math.max(14, savedFontSize));
+      setFontSize(nextFontSize);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(READER_THEME_KEY, readerTheme);
+  }, [readerTheme]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(READER_FONTSIZE_KEY, String(fontSize));
+  }, [fontSize]);
 
   // Vapi Integration
   const {
@@ -159,6 +244,31 @@ const ChatInterface = ({ book }: { book: IBook }) => {
     }
   };
 
+  const handleThemeChange = (nextTheme: ReaderTheme) => {
+    setReaderTheme(nextTheme);
+  };
+
+  const handleFontSizeChange = (nextFontSize: number) => {
+    setFontSize(Math.min(22, Math.max(14, nextFontSize)));
+  };
+
+  const palette = readerThemePalette[readerTheme];
+  const shellStyle: CSSProperties = {
+    background: palette.background,
+    color: palette.text,
+    borderColor: palette.border,
+    fontSize: `${fontSize}px`,
+    ["--reader-bg" as string]: palette.background,
+    ["--reader-panel" as string]: palette.panel,
+    ["--reader-panel-strong" as string]: palette.panelStrong,
+    ["--reader-text" as string]: palette.text,
+    ["--reader-muted" as string]: palette.muted,
+    ["--reader-border" as string]: palette.border,
+    ["--reader-input" as string]: palette.input,
+    ["--reader-accent" as string]: palette.accent,
+    ["--reader-accent-text" as string]: palette.accentText,
+  };
+
   const textPrompts = [
     {
       label: "Summarize",
@@ -185,9 +295,13 @@ const ChatInterface = ({ book }: { book: IBook }) => {
   const displayMessages = isVoiceMode ? vapiMessages : messages;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] w-full max-w-5xl mx-auto bg-white rounded-2xl shadow-soft-lg overflow-hidden border border-black/5">
+    <div
+      className="reader-shell flex flex-col h-[calc(100vh-140px)] w-full max-w-5xl mx-auto rounded-2xl shadow-soft-lg overflow-hidden border"
+      style={shellStyle}
+      data-theme={readerTheme}
+    >
       {/* Top Header / Navigation */}
-      <div className="bg-[#f3e4c7] px-4 py-3 flex items-center justify-between border-b border-black/10">
+      <div className="reader-header px-4 py-3 flex items-center justify-between border-b">
         <div className="flex items-center gap-3">
           <Link
             href="/"
@@ -226,13 +340,20 @@ const ChatInterface = ({ book }: { book: IBook }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          <ReaderAppearanceControls
+            theme={readerTheme}
+            fontSize={fontSize}
+            onThemeChange={handleThemeChange}
+            onFontSizeChange={handleFontSizeChange}
+          />
+
           {/* Voice Mode Toggle */}
           <button
             onClick={toggleVoiceMode}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
               isVoiceMode
-                ? "bg-[#663820] text-white shadow-sm"
-                : "bg-white/50 text-[#212a3b] hover:bg-white border border-black/5"
+                ? "reader-voice-toggle active"
+                : "reader-voice-toggle"
             }`}
             title={isVoiceMode ? "Disable Voice" : "Enable Voice"}
           >
@@ -268,7 +389,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto bg-[#fafafa] p-4 sm:p-6 space-y-8 scroll-smooth">
+      <div className="reader-messages-panel flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 scroll-smooth">
         {displayMessages.length === 0 &&
         !currentAssistantMessage &&
         !currentUserMessage ? (
@@ -276,10 +397,10 @@ const ChatInterface = ({ book }: { book: IBook }) => {
             <div className="bg-[#663820] p-5 rounded-3xl mb-6 shadow-lg rotate-3">
               <GraduationCap size={40} className="text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#212a3b] mb-4">
+            <h1 className="reader-empty-title text-2xl sm:text-3xl font-serif font-bold mb-4">
               Hello, Student! I'm your AI Learning Partner.
             </h1>
-            <p className="text-[#3d485e] text-lg mb-8 leading-relaxed">
+            <p className="reader-empty-copy text-lg mb-8 leading-relaxed">
               I've analyzed{" "}
               <span className="font-bold text-[#663820]">"{book.title}"</span>{" "}
               and I'm ready to help you study.
@@ -313,7 +434,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
               </div>
             ) : (
               <>
-                <p className="text-[#3d485e] text-lg mb-10 leading-relaxed">
+                <p className="reader-empty-copy text-lg mb-10 leading-relaxed">
                   {isVoiceMode
                     ? "Voice mode is active. Speak or type to chat."
                     : "Type a message below to start chatting."}
@@ -325,12 +446,12 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                       <button
                         key={idx}
                         onClick={() => handleSendMessage(prompt.text)}
-                        className="flex items-center gap-4 p-4 text-left bg-white hover:border-[#663820] hover:bg-[#fff9f0] transition-all rounded-xl border border-black/5 shadow-sm group"
+                        className="reader-prompt-card flex items-center gap-4 p-4 text-left transition-all rounded-xl border shadow-sm group"
                       >
-                        <div className="bg-[#f3e4c7] p-2.5 rounded-lg text-[#663820] group-hover:scale-110 transition-transform">
+                        <div className="reader-prompt-icon p-2.5 rounded-lg group-hover:scale-110 transition-transform">
                           {prompt.icon}
                         </div>
-                        <span className="font-bold text-[#212a3b] text-sm">
+                        <span className="reader-prompt-label font-bold text-sm">
                           {prompt.label}
                         </span>
                       </button>
@@ -365,13 +486,14 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                   className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${msg.role === "user" ? "items-end" : "items-start"}`}
                 >
                   <div
-                    className={`px-4 py-3 sm:px-6 sm:py-4 rounded-2xl shadow-sm leading-relaxed text-sm sm:text-base ${
+                    className={`reader-message-bubble px-4 py-3 sm:px-6 sm:py-4 rounded-2xl shadow-sm leading-relaxed text-sm sm:text-base ${
                       msg.role === "user"
-                        ? "bg-[#212a3b] text-white rounded-tr-none"
-                        : "bg-white text-[#212a3b] border border-black/5 rounded-tl-none"
+                        ? "reader-message-user rounded-tr-none"
+                        : "reader-message-assistant rounded-tl-none"
                     }`}
+                    style={{ fontSize: `${fontSize}px` }}
                   >
-                    <div className="whitespace-pre-wrap prose prose-sm max-w-none prose-p:leading-relaxed prose-strong:text-[#663820]">
+                    <div className="reader-message-content whitespace-pre-wrap prose prose-sm max-w-none prose-p:leading-relaxed">
                       {msg.content}
                     </div>
                   </div>
@@ -388,7 +510,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                   <User size={20} />
                 </div>
                 <div className="flex flex-col items-end max-w-[85%] sm:max-w-[75%]">
-                  <div className="px-4 py-3 sm:px-6 sm:py-4 rounded-2xl bg-[#212a3b] text-white rounded-tr-none shadow-sm text-sm sm:text-base italic opacity-70">
+                  <div className="reader-message-bubble reader-message-user px-4 py-3 sm:px-6 sm:py-4 rounded-2xl rounded-tr-none shadow-sm text-sm sm:text-base italic opacity-70" style={{ fontSize: `${fontSize}px` }}>
                     {currentUserMessage}...
                   </div>
                 </div>
@@ -401,7 +523,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                   <Sparkles size={20} />
                 </div>
                 <div className="flex flex-col items-start max-w-[85%] sm:max-w-[75%]">
-                  <div className="px-4 py-3 sm:px-6 sm:py-4 rounded-2xl bg-white text-[#212a3b] border border-black/5 rounded-tl-none shadow-sm text-sm sm:text-base">
+                  <div className="reader-message-bubble reader-message-assistant px-4 py-3 sm:px-6 sm:py-4 rounded-2xl rounded-tl-none shadow-sm text-sm sm:text-base" style={{ fontSize: `${fontSize}px` }}>
                     {currentAssistantMessage}
                     <span className="inline-block w-1.5 h-4 ml-1 bg-[#663820] animate-pulse" />
                   </div>
@@ -414,7 +536,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                 <div className="h-10 w-10 rounded-full bg-[#663820] text-white flex items-center justify-center shrink-0 shadow-sm">
                   <Loader2 size={20} className="animate-spin" />
                 </div>
-                <div className="bg-white border border-black/5 px-6 py-4 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-3">
+                <div className="reader-loading-bubble border px-6 py-4 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-3">
                   <div className="flex gap-1">
                     <span
                       className="w-1.5 h-1.5 bg-[#663820]/40 rounded-full animate-bounce"
@@ -441,7 +563,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       </div>
 
       {/* Input Area */}
-      <div className="bg-white p-4 sm:p-6 border-t border-black/5">
+      <div className="reader-input-panel p-4 sm:p-6 border-t">
         <div className="max-w-4xl mx-auto flex gap-3">
           <div className="relative flex-1 group">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#663820] transition-colors">
@@ -457,7 +579,8 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                   ? "Type a message to chat..."
                   : "Ask a question about this material..."
               }
-              className="w-full pl-12 pr-16 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-[#212a3b] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#663820] focus:bg-white focus:border-transparent transition-all shadow-inner"
+              className="reader-input w-full pl-12 pr-16 py-4 rounded-2xl focus:outline-none focus:ring-2 transition-all shadow-inner"
+              style={{ fontSize: `${fontSize}px` }}
               disabled={
                 isLoading ||
                 (isVoiceMode &&
@@ -472,7 +595,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                 (isVoiceMode &&
                   (status === "connecting" || status === "starting"))
               }
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 bg-[#663820] text-white rounded-xl hover:bg-[#7a4528] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-md"
+              className="reader-send-button absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-md"
             >
               {isLoading ? (
                 <Loader2 size={18} className="animate-spin" />
@@ -533,7 +656,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
           )}
         </div>
 
-        <div className="max-w-4xl mx-auto mt-3 flex items-center justify-center gap-4 text-[10px] text-gray-400 font-medium">
+        <div className="reader-status-row max-w-4xl mx-auto mt-3 flex items-center justify-center gap-4 text-[10px] font-medium">
           <span className="flex items-center gap-1">
             <BookOpen size={10} /> Context-Aware RAG
           </span>
