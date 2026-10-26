@@ -44,3 +44,35 @@ export const chatWithBook = async (
     };
   }
 };
+
+export const getBookSummary = async (bookId: string, bookTitle: string) => {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/chat/summary`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bookId,
+        bookTitle,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || `Backend error: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Summary Action Error (calling backend):", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to generate summary from AI",
+    };
+  }
+};
+
