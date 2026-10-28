@@ -254,3 +254,73 @@ export const searchSegments = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, error: String(error), data: [] });
   }
 };
+
+export const seedDemoBook = async (req: Request, res: Response) => {
+  try {
+    const userId =
+      (req.headers["x-user-id"] as string) ||
+      (req.body?.userId as string) ||
+      (req.query?.userId as string) ||
+      "demo_student";
+
+    const existing = await Book.findOne({ slug: "intro-to-computer-science" });
+    if (existing) {
+      if (userId && userId !== "demo_student" && existing.userId !== userId) {
+        existing.userId = userId;
+        await existing.save();
+        await BookSegment.updateMany({ bookId: existing._id }, { userId });
+      }
+      return res.status(200).json({
+        success: true,
+        message: "Demo book already exists!",
+        book: serializeData(existing),
+      });
+    }
+
+    const demoBook = await Book.create({
+      userId,
+      title: "Introduction to Computer Science",
+      author: "Alan Turing",
+      slug: "intro-to-computer-science",
+      fileURL: "https://example.com/demo.pdf",
+      fileBlobKey: "demo_blob_key",
+      coverURL: "https://images.unsplash.com/photo-1532012164546-f432f2e3edd4?w=500",
+      fileSize: 1024000,
+      totalSegments: 2,
+    });
+
+    await BookSegment.create([
+      {
+        userId,
+        bookId: demoBook._id,
+        content:
+          "Chapter 1: Algorithms and Data Structures. An algorithm is a step-by-step sequence of instructions designed to solve a problem or perform a task. Common algorithms include sorting and binary search.",
+        segmentIndex: 0,
+        pageNumber: 1,
+        wordCount: 35,
+      },
+      {
+        userId,
+        bookId: demoBook._id,
+        content:
+          "Chapter 2: Computational Complexity. Big O notation describes the upper bound of execution time. An O(log n) algorithm is significantly faster than an O(n^2) algorithm as input grows large.",
+        segmentIndex: 1,
+        pageNumber: 2,
+        wordCount: 32,
+      },
+    ]);
+
+    return res.status(201).json({
+      success: true,
+      message: "Demo book seeded successfully!",
+      book: serializeData(demoBook),
+    });
+  } catch (error) {
+    console.error("Seed error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to seed demo book",
+    });
+  }
+};
+

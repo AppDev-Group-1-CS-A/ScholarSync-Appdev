@@ -398,6 +398,70 @@ Interactive OpenAPI 3.0 specification and API testing playground for the Scholar
         },
       },
     },
+    "/api/books/seed-demo": {
+      post: {
+        tags: ["Books"],
+        summary: "One-click demo book seeder",
+        description: "Populates the database with a pre-indexed sample book ('Introduction to Computer Science' by Alan Turing) and two sample segments so users or evaluators can immediately test the workspace without uploading a PDF.",
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  userId: {
+                    type: "string",
+                    description: "Target user ID to assign the demo book to. Defaults to 'demo_student' if omitted.",
+                    example: "user_demo_scholar_123",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Demo book created and seeded successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "Demo book seeded successfully!" },
+                    book: { $ref: "#/components/schemas/Book" },
+                  },
+                },
+              },
+            },
+          },
+          200: {
+            description: "Demo book already exists",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "Demo book already exists!" },
+                    book: { $ref: "#/components/schemas/Book" },
+                  },
+                },
+              },
+            },
+          },
+          500: {
+            description: "Failed to seed demo book",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
     "/api/chat": {
       post: {
         tags: ["AI Chat"],
