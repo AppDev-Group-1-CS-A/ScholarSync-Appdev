@@ -7,6 +7,7 @@ import {
   deleteBook,
   saveBookSegments,
   searchSegments,
+  seedDemoBook,
 } from "../controllers/book.controller";
 
 const router = Router();
@@ -15,6 +16,7 @@ router.get("/", getAllBooks);
 router.get("/check/:title", checkBookExists);
 router.get("/slug/:slug", getBookBySlug);
 router.get("/:id/search", searchSegments);
+router.post("/seed-demo", seedDemoBook);
 router.post("/", createBook);
 router.post("/:id/segments", saveBookSegments);
 router.delete("/:id", deleteBook);

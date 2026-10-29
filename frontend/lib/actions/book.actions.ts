@@ -164,3 +164,31 @@ export const searchBookSegments = async (
     return { success: false, error: String(error), data: [] };
   }
 };
+
+export const seedDemoBook = async (targetUserId?: string) => {
+  try {
+    const session = await getSession();
+    const userId = targetUserId || session?.userId;
+
+    const res = await fetch(`${BACKEND_URL}/api/books/seed-demo`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(userId ? { "x-user-id": userId } : {}),
+      },
+      body: JSON.stringify({ userId }),
+      cache: "no-store",
+    });
+
+    const data = await res.json();
+    revalidatePath("/");
+    return data;
+  } catch (e) {
+    console.error("Error seeding demo book via backend:", e);
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+};
+

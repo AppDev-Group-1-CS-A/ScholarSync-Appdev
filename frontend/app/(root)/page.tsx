@@ -5,6 +5,7 @@ import Search from "@/components/Search";
 import Link from "next/link";
 import { sampleBooks } from "@/lib/constants";
 import HeroSection from "@/components/HeroSection";
+import SeedDemoButton from "@/components/SeedDemoButton";
 import { getSession } from "@/lib/auth";
 import {
   Sparkles,
@@ -74,12 +75,15 @@ const Page = async ({
                   <p className="text-[#3d485e] mb-8 max-w-xs mx-auto">
                     Start by uploading a PDF or textbook to create your first AI tutor.
                   </p>
-                  <Link
-                    href="/books/new"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#663820] text-white rounded-xl font-bold hover:bg-[#7a4528] transition-all"
-                  >
-                    + Add Study Material
-                  </Link>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <Link
+                      href="/books/new"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-[#663820] text-white rounded-xl font-bold hover:bg-[#7a4528] transition-all shadow-sm"
+                    >
+                      + Add Study Material
+                    </Link>
+                    <SeedDemoButton userId={userId} variant="secondary" />
+                  </div>
                 </div>
               )}
             </div>
