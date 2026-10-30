@@ -1,9 +1,38 @@
 import { Request, Response } from "express";
 import Groq from "groq-sdk";
 import mongoose from "mongoose";
+import Book from "../models/book.model";
 import BookSegment from "../models/book-segment.model";
+import ChatMessage from "../models/chat-message.model";
 import { escapeRegex } from "../utils";
 import { Messages } from "../types";
+
+type ChatOwnerResult =
+  | { userId: string }
+  | { error: string; status: 400 | 401 | 403 | 404 };
+
+async function getChatOwner(req: Request, bookId: string): Promise<ChatOwnerResult> {
+  const book = await Book.findById(bookId).select("userId clerkId");
+  if (!book) return { error: "Book not found", status: 404 as const };
+
+  const requestedUserId =
+    (req.headers["x-user-id"] as string) ||
+    (typeof req.body?.userId === "string" ? req.body.userId : undefined);
+  if (!requestedUserId) {
+    return { error: "Unauthorized: Missing userId", status: 401 as const };
+  }
+
+  const bookUserIds = [book.userId, book.clerkId].filter(Boolean) as string[];
+
+  if (requestedUserId && !bookUserIds.includes(requestedUserId)) {
+    return { error: "Unauthorized", status: 403 as const };
+  }
+
+  const userId = book.userId || book.clerkId;
+  if (!userId) return { error: "Book owner not found", status: 400 as const };
+
+  return { userId };
+}
 
 const getGroq = () => {
   const apiKey = process.env.GROQ_API_KEY;
@@ -65,6 +94,15 @@ export const chatWithBook = async (req: Request, res: Response) => {
       });
     }
 
+    if (typeof bookId !== "string" || !mongoose.Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({ success: false, error: "Invalid bookId" });
+    }
+
+    const owner = await getChatOwner(req, bookId);
+    if ("error" in owner) {
+      return res.status(owner.status).json({ success: false, error: owner.error });
+    }
+
     const groq = getGroq();
 
     // 1. Search context from book segments
@@ -117,6 +155,26 @@ ${context || "No specific segments found for this query."}`;
 
     const responseText = completion.choices[0]?.message?.content || "";
 
+    await ChatMessage.insertMany([
+      {
+        userId: owner.userId,
+        bookId: new mongoose.Types.ObjectId(bookId),
+        role: "user",
+        content: userMessage,
+        citations: [],
+      },
+      {
+        userId: owner.userId,
+        bookId: new mongoose.Types.ObjectId(bookId),
+        role: "assistant",
+        content: responseText,
+        citations: segments.map((segment: any) => ({
+          pageNumber: segment.pageNumber,
+          segmentIndex: segment.segmentIndex,
+        })),
+      },
+    ]);
+
     return res.json({
       success: true,
       data: responseText,
@@ -127,6 +185,50 @@ ${context || "No specific segments found for this query."}`;
       success: false,
       error: error instanceof Error ? error.message : "Failed to get response from Groq",
     });
+  }
+};
+
+export const getChatHistory = async (req: Request, res: Response) => {
+  try {
+    const bookId = String(req.params.bookId);
+    if (!mongoose.Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({ success: false, error: "Invalid bookId" });
+    }
+
+    const owner = await getChatOwner(req, bookId);
+    if ("error" in owner) {
+      return res.status(owner.status).json({ success: false, error: owner.error });
+    }
+
+    const messages = await ChatMessage.find({ bookId, userId: owner.userId })
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(50)
+      .lean();
+
+    return res.json({ success: true, data: messages.reverse() });
+  } catch (error) {
+    console.error("Chat history error:", error);
+    return res.status(500).json({ success: false, error: "Failed to load chat history" });
+  }
+};
+
+export const clearChatHistory = async (req: Request, res: Response) => {
+  try {
+    const bookId = String(req.params.bookId);
+    if (!mongoose.Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({ success: false, error: "Invalid bookId" });
+    }
+
+    const owner = await getChatOwner(req, bookId);
+    if ("error" in owner) {
+      return res.status(owner.status).json({ success: false, error: owner.error });
+    }
+
+    const result = await ChatMessage.deleteMany({ bookId, userId: owner.userId });
+    return res.json({ success: true, deletedCount: result.deletedCount });
+  } catch (error) {
+    console.error("Clear chat history error:", error);
+    return res.status(500).json({ success: false, error: "Failed to clear chat history" });
   }
 };
 
