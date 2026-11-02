@@ -137,6 +137,24 @@ This document is your internal reference menu. You can review these tasks with y
 
 ---
 
+---
+
+### Task 2.5: Automated Voice Assistant Setup & Multi-Account Switcher [DEVOPS-01]
+- **Assigned to:** Lead / DevOps & AI Systems (Keith Brian Laranjo)
+- **Difficulty:** 🟢 Medium (2–3 hours)
+- **Value:** Prevents developer downtime caused by depleted third-party voice credits; automates assistant provisioning on fresh accounts via REST API and syncs local .env variables instantly.
+- **GitHub Issue:** **[#43](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/issues/43)**
+- **Files to modify / create:**
+  - `docs/vapi/assistant_config.json` (Assistant payload template)
+  - `docs/vapi/setup_vapi_assistant.js` (CLI setup script with interactive prompts)
+  - `docs/vapi/README.md` (Quick-start documentation)
+  - `package.json` (Added `npm run setup:vapi` script)
+- **What to do:**
+  1. Store the canonical assistant configuration with academic tutor system prompt, ElevenLabs voice, and `searchBook` tool definition.
+  2. Implement a CLI script to create the assistant on fresh Vapi accounts via the REST API.
+  3. Safely update `NEXT_PUBLIC_ASSISTANT_ID` and `NEXT_PUBLIC_VAPI_API_KEY` across `.env` and `frontend/.env.local` while keeping previous keys as commented-out backups.
+  4. Expose the workflow as an npm script (`npm run setup:vapi`).
+
 ## 🔴 Category 3: Advanced / High Impact Features (Sprint 3 & Final Defense)
 *Impressive showcase features for final presentation.*
 
@@ -187,6 +205,7 @@ Pick **1 small task per person / pair** for the next 2–3 days:
 | Team Member | Assigned Starter Task | GitHub Issue | Why This One & How They Pair |
 | :--- | :--- | :--- | :--- |
 | **Keith Brian Laranjo (Lead)** | **System Integration & Branch Reviews** | PR Reviews & Dev Server | Oversees local environment setup, reviews PRs from all members, ensures zero conflicts. |
+| **Keith Brian Laranjo (Lead)** | **Automated Voice Assistant Setup & Switcher** | **[DEVOPS-01] (#43)** | Automated Vapi assistant provisioning and credit exhaustion recovery pipeline. |
 | **Aron Avila & Jerlyn Valdez** | **Mobile Hamburger Menu & Slide-out Drawer** | **[MOB-01] (#26)** | Aron codes the component on his laptop while Jerlyn tests mobile responsiveness and UI flow. |
 | **Aron Avila & Jerlyn Valdez** | **Reader Appearance Controls & Themes** | **[FE-01] (#27)** | Aron manages React state & font scaling while Jerlyn designs Sepia/Dark palettes and mobile touch targets. |
 | **Vencie Sales & Vincel Esguera** | **Automated Chapter Key Takeaways** | **[AI-01] (#29)** | Connects Groq LLM with a dedicated summarization prompt (`POST /api/chat/summary`). |
