@@ -466,7 +466,16 @@ Interactive OpenAPI 3.0 specification and API testing playground for the Scholar
       post: {
         tags: ["AI Chat"],
         summary: "Contextual RAG Chat with Book",
-        description: "Queries the Groq LLM (Llama 3.3 70B) against retrieved book text segments, outputting an AI response with precise page citations.",
+        description: "Queries the Groq LLM against retrieved book text segments and stores the user and assistant messages in the book's chat history.",
+        parameters: [
+          {
+            name: "x-user-id",
+            in: "header",
+            required: false,
+            schema: { type: "string" },
+            description: "Provide this or userId in the request body.",
+          },
+        ],
         requestBody: {
           required: true,
           content: {
@@ -492,6 +501,18 @@ Interactive OpenAPI 3.0 specification and API testing playground for the Scholar
               },
             },
           },
+          401: {
+            description: "Missing user identity",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          403: {
+            description: "The requested user does not own this book",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          404: {
+            description: "Book not found",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
           500: {
             description: "LLM or inference pipeline error",
             content: {
@@ -499,6 +520,106 @@ Interactive OpenAPI 3.0 specification and API testing playground for the Scholar
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
               },
             },
+          },
+        },
+      },
+    },
+    "/api/chat/history/{bookId}": {
+      get: {
+        tags: ["AI Chat"],
+        summary: "Get chat history for a book",
+        description: "Returns the latest 50 messages for the book owner in chronological order.",
+        parameters: [
+          {
+            name: "bookId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+          {
+            name: "x-user-id",
+            in: "header",
+            required: true,
+            schema: { type: "string" },
+            description: "The signed-in book owner's ID.",
+          },
+        ],
+        responses: {
+          200: {
+            description: "Chronological chat history",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ChatHistoryResponse" },
+              },
+            },
+          },
+          400: {
+            description: "Invalid book ID",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          401: {
+            description: "Missing user identity",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          403: {
+            description: "The requested user does not own this book",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          404: {
+            description: "Book not found",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+        },
+      },
+      delete: {
+        tags: ["AI Chat"],
+        summary: "Clear chat history for a book",
+        description: "Deletes all stored messages for the book owner.",
+        parameters: [
+          {
+            name: "bookId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+          {
+            name: "x-user-id",
+            in: "header",
+            required: true,
+            schema: { type: "string" },
+            description: "The signed-in book owner's ID.",
+          },
+        ],
+        responses: {
+          200: {
+            description: "Chat history cleared",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    deletedCount: { type: "integer", example: 12 },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: "Invalid book ID",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          401: {
+            description: "Missing user identity",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          403: {
+            description: "The requested user does not own this book",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          404: {
+            description: "Book not found",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
           },
         },
       },
@@ -913,6 +1034,7 @@ Interactive OpenAPI 3.0 specification and API testing playground for the Scholar
         required: ["bookId", "bookTitle", "userMessage"],
         properties: {
           bookId: { type: "string", example: "67160ad9f71c480029b9f012" },
+          userId: { type: "string", example: "user_demo_scholar_123" },
           bookTitle: { type: "string", example: "Calculus: Early Transcendentals" },
           userMessage: { type: "string", example: "What is the Fundamental Theorem of Calculus?" },
           persona: { type: "string", example: "socratic_tutor" },
@@ -932,18 +1054,38 @@ Interactive OpenAPI 3.0 specification and API testing playground for the Scholar
         type: "object",
         properties: {
           success: { type: "boolean", example: true },
-          reply: {
+          data: {
             type: "string",
-            example: "The Fundamental Theorem of Calculus connects differentiation and integration [Page 294, Paragraph 2]...",
+            example: "The Fundamental Theorem of Calculus connects differentiation and integration [Page 294]...",
           },
-          citations: {
+        },
+      },
+      ChatHistoryResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                segmentIndex: { type: "integer", example: 45 },
-                pageNumber: { type: "integer", example: 294 },
-                preview: { type: "string", example: "Theorem: If f is continuous on [a, b]..." },
+                _id: { type: "string", example: "67160ad9f71c480029b9f099" },
+                bookId: { type: "string", example: "67160ad9f71c480029b9f012" },
+                userId: { type: "string", example: "user_demo_scholar_123" },
+                role: { type: "string", enum: ["user", "assistant"] },
+                content: { type: "string", example: "Can you explain limits?" },
+                citations: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      pageNumber: { type: "integer", example: 14 },
+                      segmentIndex: { type: "integer", example: 3 },
+                    },
+                  },
+                },
+                createdAt: { type: "string", format: "date-time" },
+                updatedAt: { type: "string", format: "date-time" },
               },
             },
           },

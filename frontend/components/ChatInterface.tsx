@@ -29,7 +29,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { chatWithBook } from "@/lib/actions/chat.actions";
+import {
+  chatWithBook,
+  clearChatHistory,
+  getChatHistory,
+} from "@/lib/actions/chat.actions";
 import { toast } from "sonner";
 import useVapi from "@/hooks/useVapi";
 import ReaderAppearanceControls, {
@@ -49,6 +53,8 @@ const ChatInterface = ({ book }: { book: IBook }) => {
   const [messages, setMessages] = useState<Messages[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [isClearing, setIsClearing] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -64,34 +70,77 @@ const ChatInterface = ({ book }: { book: IBook }) => {
   const [theme, setTheme] = useState<ReaderTheme>("light");
   const [fontSize, setFontSize] = useState<number>(16);
 
-  // Load chat sessions from localStorage for this book
+  // Load the persisted book thread and refresh the local cache.
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`scholarsync_chats_${book._id}`);
-      if (saved) {
-        const parsed: ChatSession[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSessions(parsed);
-          setActiveSessionId(parsed[0].id);
-          setMessages(parsed[0].messages || []);
-          return;
-        }
-      }
-    } catch {
-      // Ignore
-    }
+    let cancelled = false;
+    setIsHistoryLoading(true);
 
-    const defaultSession: ChatSession = {
-      id: `session_${Date.now()}`,
-      title: "New Conversation",
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+    const loadHistory = async () => {
+      const emptySession: ChatSession = {
+        id: `book_${book._id}`,
+        title: "New Conversation",
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      try {
+        const result = await getChatHistory(book._id, book.userId);
+        if (!result.success) throw new Error(result.error || "Failed to load chat history");
+
+        const records = Array.isArray(result.data) ? result.data : [];
+        const historyMessages: Messages[] = records.map(
+          (record: { role: string; content: string }) => ({
+            role: record.role,
+            content: record.content,
+          }),
+        );
+        const firstTimestamp = records[0]?.createdAt
+          ? Date.parse(records[0].createdAt)
+          : Date.now();
+        const lastTimestamp = records.at(-1)?.createdAt
+          ? Date.parse(records.at(-1).createdAt)
+          : firstTimestamp;
+        const firstUserMessage = historyMessages.find(
+          (message) => message.role === "user",
+        );
+        const session: ChatSession = {
+          id: `book_${book._id}`,
+          title: firstUserMessage?.content.slice(0, 36) || "Book Thread",
+          messages: historyMessages,
+          createdAt: firstTimestamp,
+          updatedAt: lastTimestamp,
+        };
+
+        if (cancelled) return;
+        setSessions([session]);
+        setActiveSessionId(session.id);
+        setMessages(historyMessages);
+        try {
+          localStorage.setItem(
+            `scholarsync_chats_${book._id}`,
+            JSON.stringify([session]),
+          );
+        } catch {
+          // Ignore local cache failures; the backend remains authoritative.
+        }
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Failed to hydrate chat history:", error);
+        toast.error("Could not load saved chat history.");
+        setSessions([emptySession]);
+        setActiveSessionId(emptySession.id);
+        setMessages([]);
+      } finally {
+        if (!cancelled) setIsHistoryLoading(false);
+      }
     };
-    setSessions([defaultSession]);
-    setActiveSessionId(defaultSession.id);
-    setMessages([]);
-  }, [book._id]);
+
+    loadHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [book._id, book.userId]);
 
   // Responsive sidebar: collapse by default on mobile screens
   useEffect(() => {
@@ -441,7 +490,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
 
   const handleSendMessage = async (text?: string) => {
     const messageText = text || input;
-    if (!messageText.trim() || isLoading) return;
+    if (!messageText.trim() || isLoading || isHistoryLoading || isClearing) return;
 
     if (isVoiceMode) {
       if (isActive && status !== "connecting" && status !== "starting") {
@@ -473,6 +522,7 @@ const ChatInterface = ({ book }: { book: IBook }) => {
     try {
       const result = await chatWithBook(
         book._id,
+        book.userId,
         book.title,
         messageText,
         messages,
@@ -514,12 +564,42 @@ const ChatInterface = ({ book }: { book: IBook }) => {
     }
   };
 
-  const clearChat = () => {
-    if (messages.length === 0 && vapiMessages.length === 0) return;
-    if (confirm("Clear all messages in this session?")) {
+  const clearChat = async () => {
+    if (!confirm("Clear the saved thread for this book? This cannot be undone.")) {
+      return;
+    }
+
+    setIsClearing(true);
+    try {
+      const result = await clearChatHistory(book._id, book.userId);
+      if (!result.success) throw new Error(result.error || "Failed to clear chat history");
+
+      const emptySession: ChatSession = {
+        id: `book_${book._id}`,
+        title: "New Conversation",
+        messages: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      setSessions([emptySession]);
+      setActiveSessionId(emptySession.id);
       setMessages([]);
-      persistSessionMessages([]);
+      try {
+        localStorage.setItem(
+          `scholarsync_chats_${book._id}`,
+          JSON.stringify([emptySession]),
+        );
+      } catch {
+        // Ignore local cache failures; the backend remains authoritative.
+      }
       if (isActive) stopVapi();
+      toast.success("Chat thread cleared.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to clear chat thread.",
+      );
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -766,11 +846,12 @@ const ChatInterface = ({ book }: { book: IBook }) => {
           <button
             type="button"
             onClick={clearChat}
+            disabled={isClearing || isHistoryLoading}
             className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 px-2 py-1 rounded-md transition-colors font-medium"
-            title="Clear all messages in this session"
+            title="Clear the saved thread for this book"
           >
-            <Trash2 size={13} />
-            <span>Clear Chat</span>
+            {isClearing ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+            <span>{isClearing ? "Clearing..." : "Clear Thread"}</span>
           </button>
 
           <span className="text-[10px] opacity-60 font-mono">
@@ -1106,6 +1187,8 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                 className={`w-full pl-10 pr-12 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm focus:outline-none transition-all shadow-inner ${currentStyles.inputField}`}
                 disabled={
                   isLoading ||
+                  isHistoryLoading ||
+                  isClearing ||
                   (isVoiceMode &&
                     (status === "connecting" || status === "starting"))
                 }
@@ -1114,6 +1197,8 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                 onClick={() => handleSendMessage()}
                 disabled={
                   isLoading ||
+                  isHistoryLoading ||
+                  isClearing ||
                   !input.trim() ||
                   (isVoiceMode &&
                     (status === "connecting" || status === "starting"))
