@@ -23,6 +23,7 @@ dist/
 backend/.env
 frontend/.env
 frontend/.env.local
+docs/TEAM_ENV_SETUP.md
 !.env.example
 !backend/.env.example
 !frontend/.env.example
