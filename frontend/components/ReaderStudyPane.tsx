@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { IBook } from "@/types";
+import { useState, useEffect, useCallback } from "react";
+import { IBook, IBookSegment } from "@/types";
 import { ReaderTheme } from "./ReaderAppearanceControls";
 import { getBookSummary } from "@/lib/actions/chat.actions";
 import { searchBookSegments } from "@/lib/actions/book.actions";
@@ -15,13 +15,18 @@ import {
   MessageSquarePlus,
   RefreshCw,
   ExternalLink,
-  Layers,
   CheckCircle2,
-  AlertCircle,
   HelpCircle,
+  Brain,
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import QuizModal, { PracticeQuiz } from "./QuizModal";
+
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.BACKEND_URL ||
+  "http://localhost:5000";
 
 interface ReaderStudyPaneProps {
   book: IBook;
@@ -48,9 +53,11 @@ export default function ReaderStudyPane({
   const [summaryLoaded, setSummaryLoaded] = useState(false);
 
   // Segments State
-  const [segments, setSegments] = useState<any[]>([]);
+  const [segments, setSegments] = useState<IBookSegment[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSegmentsLoading, setIsSegmentsLoading] = useState(false);
+  const [isQuizLoading, setIsQuizLoading] = useState(false);
+  const [practiceQuiz, setPracticeQuiz] = useState<PracticeQuiz | null>(null);
 
   // Fetch initial summary from cache or storage if available
   useEffect(() => {
@@ -65,13 +72,6 @@ export default function ReaderStudyPane({
       // Ignore localStorage errors
     }
   }, [book._id]);
-
-  // Load Book Segments when tab is opened
-  useEffect(() => {
-    if (activeTab === "segments" && segments.length === 0) {
-      loadSegments("");
-    }
-  }, [activeTab]);
 
   const loadSummary = async () => {
     setIsSummaryLoading(true);
@@ -97,7 +97,7 @@ export default function ReaderStudyPane({
     }
   };
 
-  const loadSegments = async (query: string) => {
+  const loadSegments = useCallback(async (query: string) => {
     setIsSegmentsLoading(true);
     try {
       const res = await searchBookSegments(book._id, query, 15);
@@ -109,11 +109,56 @@ export default function ReaderStudyPane({
     } finally {
       setIsSegmentsLoading(false);
     }
-  };
+  }, [book._id]);
+
+  // Load Book Segments when tab is opened
+  useEffect(() => {
+    if (activeTab === "segments" && segments.length === 0) {
+      loadSegments("");
+    }
+  }, [activeTab, loadSegments, segments.length]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     loadSegments(searchQuery);
+  };
+
+  const generateQuiz = async () => {
+    setIsQuizLoading(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/chat/quiz`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": book.userId,
+        },
+        body: JSON.stringify({
+          bookId: book._id,
+          bookTitle: book.title,
+          userId: book.userId,
+        }),
+      });
+      const result = (await response.json()) as {
+        success: boolean;
+        data?: PracticeQuiz;
+        error?: string;
+      };
+
+      if (!response.ok || !result.success || !result.data) {
+        throw new Error(result.error || "Failed to generate practice quiz");
+      }
+
+      setPracticeQuiz(result.data);
+    } catch (error) {
+      console.error("Practice quiz request failed:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to connect to the practice quiz service",
+      );
+    } finally {
+      setIsQuizLoading(false);
+    }
   };
 
   // Theme-aware styles for the Study Pane
@@ -204,21 +249,32 @@ export default function ReaderStudyPane({
           </button>
         </div>
 
-        {activeTab === "summary" && summaryLoaded && (
+        <div className="flex items-center gap-2">
+          {activeTab === "summary" && summaryLoaded && (
+            <button
+              type="button"
+              onClick={loadSummary}
+              disabled={isSummaryLoading}
+              className="flex items-center gap-1 text-[11px] font-bold opacity-70 hover:opacity-100 p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+              title="Regenerate summary with AI"
+            >
+              <RefreshCw
+                size={12}
+                className={isSummaryLoading ? "animate-spin" : ""}
+              />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+          )}
           <button
             type="button"
-            onClick={loadSummary}
-            disabled={isSummaryLoading}
-            className="flex items-center gap-1 text-[11px] font-bold opacity-70 hover:opacity-100 p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-all"
-            title="Regenerate summary with AI"
+            onClick={generateQuiz}
+            disabled={isQuizLoading}
+            className="flex items-center gap-1.5 rounded-lg bg-[#663820] px-3 py-2 text-[11px] font-bold text-white transition-colors hover:bg-[#7a4528] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw
-              size={12}
-              className={isSummaryLoading ? "animate-spin" : ""}
-            />
-            <span className="hidden sm:inline">Refresh</span>
+            <Brain size={14} className={isQuizLoading ? "animate-pulse" : ""} />
+            <span>{isQuizLoading ? "Generating..." : "Generate Practice Quiz"}</span>
           </button>
-        )}
+        </div>
       </div>
 
       {/* Pane Content Area */}
@@ -477,6 +533,12 @@ export default function ReaderStudyPane({
           </div>
         )}
       </div>
+      {practiceQuiz && (
+        <QuizModal
+          quiz={practiceQuiz}
+          onClose={() => setPracticeQuiz(null)}
+        />
+      )}
     </div>
   );
 }
