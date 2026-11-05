@@ -524,6 +524,64 @@ Interactive OpenAPI 3.0 specification and API testing playground for the Scholar
         },
       },
     },
+    "/api/chat/quiz": {
+      post: {
+        tags: ["AI Chat"],
+        summary: "Generate a textbook practice quiz",
+        description: "Generates exactly five multiple-choice questions from the requested book's indexed excerpts using Groq Llama 3.3 70B.",
+        parameters: [
+          {
+            name: "x-user-id",
+            in: "header",
+            required: false,
+            schema: { type: "string" },
+            description: "Provide this or userId in the request body.",
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/QuizRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "Generated five-question practice quiz",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/QuizResponse" },
+              },
+            },
+          },
+          400: {
+            description: "Missing or invalid book ID",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          401: {
+            description: "Missing user identity",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          403: {
+            description: "The requested user does not own this book",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          404: {
+            description: "Book or indexed textbook content not found",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          500: {
+            description: "Quiz generation failed",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+          502: {
+            description: "The AI service returned an invalid or empty quiz",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+          },
+        },
+      },
+    },
     "/api/chat/history/{bookId}": {
       get: {
         tags: ["AI Chat"],
@@ -1057,6 +1115,50 @@ Interactive OpenAPI 3.0 specification and API testing playground for the Scholar
           data: {
             type: "string",
             example: "The Fundamental Theorem of Calculus connects differentiation and integration [Page 294]...",
+          },
+        },
+      },
+      QuizRequest: {
+        type: "object",
+        required: ["bookId"],
+        properties: {
+          bookId: { type: "string", example: "67160ad9f71c480029b9f012" },
+          userId: { type: "string", example: "user_demo_scholar_123" },
+          bookTitle: { type: "string", example: "Calculus: Early Transcendentals" },
+        },
+      },
+      QuizResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: { $ref: "#/components/schemas/PracticeQuiz" },
+        },
+      },
+      PracticeQuiz: {
+        type: "object",
+        required: ["quizTitle", "questions"],
+        properties: {
+          quizTitle: { type: "string", example: "Limits and Continuity" },
+          questions: {
+            type: "array",
+            minItems: 5,
+            maxItems: 5,
+            items: {
+              type: "object",
+              required: ["id", "question", "options", "correctIndex", "explanation"],
+              properties: {
+                id: { type: "integer", example: 1 },
+                question: { type: "string", example: "What does the derivative represent at a point?" },
+                options: {
+                  type: "array",
+                  minItems: 4,
+                  maxItems: 4,
+                  items: { type: "string" },
+                },
+                correctIndex: { type: "integer", minimum: 0, maximum: 3, example: 1 },
+                explanation: { type: "string", example: "The derivative gives the instantaneous rate of change at that point." },
+              },
+            },
           },
         },
       },

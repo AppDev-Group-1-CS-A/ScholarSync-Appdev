@@ -298,3 +298,152 @@ ${context}`;
     return res.status(500).json({ success: false, error: "Failed to generate summary" });
   }
 };
+
+type PracticeQuiz = {
+  quizTitle: string;
+  questions: {
+    id: number;
+    question: string;
+    options: [string, string, string, string];
+    correctIndex: number;
+    explanation: string;
+  }[];
+};
+
+function isPracticeQuiz(value: unknown): value is PracticeQuiz {
+  if (!value || typeof value !== "object") return false;
+  const quiz = value as Record<string, unknown>;
+  if (
+    typeof quiz.quizTitle !== "string" ||
+    !Array.isArray(quiz.questions) ||
+    quiz.questions.length !== 5
+  ) {
+    return false;
+  }
+
+  return quiz.questions.every((item) => {
+    if (!item || typeof item !== "object") return false;
+    const question = item as Record<string, unknown>;
+    return (
+      Number.isInteger(question.id) &&
+      typeof question.question === "string" &&
+      Array.isArray(question.options) &&
+      question.options.length === 4 &&
+      question.options.every((option) => typeof option === "string" && option.length > 0) &&
+      Number.isInteger(question.correctIndex) &&
+      (question.correctIndex as number) >= 0 &&
+      (question.correctIndex as number) < 4 &&
+      typeof question.explanation === "string"
+    );
+  });
+}
+
+export const generatePracticeQuiz = async (req: Request, res: Response) => {
+  try {
+    const { bookId, bookTitle = "this textbook" } = req.body as {
+      bookId?: string;
+      bookTitle?: string;
+    };
+
+    if (!bookId) {
+      return res.status(400).json({ success: false, error: "Missing bookId" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({ success: false, error: "Invalid bookId" });
+    }
+
+    const owner = await getChatOwner(req, bookId);
+    if ("error" in owner) {
+      return res.status(owner.status).json({ success: false, error: owner.error });
+    }
+
+    let segments = await findBookSegments(bookId, "important key concepts principles definitions", 10);
+    if (segments.length === 0) {
+      segments = await BookSegment.find({ bookId: new mongoose.Types.ObjectId(bookId) })
+        .select("content segmentIndex pageNumber")
+        .sort({ segmentIndex: 1 })
+        .limit(10)
+        .lean();
+    }
+
+    if (segments.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "No book content found for this textbook",
+      });
+    }
+
+    const context = segments
+      .map((segment: { content: string; pageNumber?: number }) =>
+        `[Page ${segment.pageNumber || "?"}] ${segment.content}`,
+      )
+      .join("\n\n")
+      .slice(0, 24000);
+
+    const systemPrompt = `You are an expert academic tutor. Generate a 5-question multiple choice practice quiz based on the provided textbook excerpts.
+Return ONLY valid JSON matching this schema:
+{
+  "quizTitle": "string",
+  "questions": [
+    {
+      "id": 1,
+      "question": "string",
+      "options": ["A", "B", "C", "D"],
+      "correctIndex": 0,
+      "explanation": "string"
+    }
+  ]
+}
+Generate exactly 5 questions. Each question must have exactly 4 distinct options, one unambiguous correct answer, and a concise explanation grounded in the excerpts.`;
+
+    const completion = await getGroq().chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Textbook: ${bookTitle}\n\nTextbook excerpts:\n${context}`,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.4,
+      max_tokens: 1800,
+      response_format: { type: "json_object" },
+    });
+
+    const responseText = completion.choices[0]?.message?.content;
+    if (!responseText) {
+      return res.status(502).json({
+        success: false,
+        error: "The AI service returned an empty quiz",
+      });
+    }
+
+    let quiz: unknown;
+    try {
+      quiz = JSON.parse(responseText);
+    } catch (error) {
+      console.error("Practice quiz JSON parsing error:", error);
+      return res.status(502).json({
+        success: false,
+        error: "The AI service returned an invalid quiz",
+      });
+    }
+
+    if (!isPracticeQuiz(quiz)) {
+      console.error("Practice quiz response did not match the required schema");
+      return res.status(502).json({
+        success: false,
+        error: "The AI service returned an invalid quiz",
+      });
+    }
+
+    return res.json({ success: true, data: quiz });
+  } catch (error) {
+    console.error("Practice quiz generation error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to generate practice quiz",
+    });
+  }
+};
