@@ -269,10 +269,12 @@ export default function ReaderStudyPane({
             type="button"
             onClick={generateQuiz}
             disabled={isQuizLoading}
-            className="flex items-center gap-1.5 rounded-lg bg-[#663820] px-3 py-2 text-[11px] font-bold text-white transition-colors hover:bg-[#7a4528] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold transition-all shadow-sm hover:shadow disabled:cursor-not-allowed disabled:opacity-60"
+            title="Generate a 5-question active recall practice quiz with Groq AI"
           >
             <Brain size={14} className={isQuizLoading ? "animate-pulse" : ""} />
-            <span>{isQuizLoading ? "Generating..." : "Generate Practice Quiz"}</span>
+            <span className="hidden sm:inline">{isQuizLoading ? "Generating Quiz..." : "Practice Quiz"}</span>
+            <span className="sm:hidden">{isQuizLoading ? "..." : "Quiz"}</span>
           </button>
         </div>
       </div>
@@ -367,6 +369,32 @@ export default function ReaderStudyPane({
                     </button>
                   </div>
                 )}
+
+                {/* Interactive Practice Quiz CTA */}
+                <div
+                  className={`p-4 rounded-xl border flex items-center justify-between gap-3 text-xs ${currentStyles.card}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <Brain size={18} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs">Ready for Active Recall?</p>
+                      <p className="text-[11px] opacity-70">
+                        Take an instant 5-question multiple choice practice quiz.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={generateQuiz}
+                    disabled={isQuizLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 transition-all shadow-sm hover:shadow disabled:opacity-50"
+                  >
+                    <Brain size={13} className={isQuizLoading ? "animate-pulse" : ""} />
+                    <span>{isQuizLoading ? "Generating..." : "Start Quiz"}</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -537,6 +565,7 @@ export default function ReaderStudyPane({
         <QuizModal
           quiz={practiceQuiz}
           onClose={() => setPracticeQuiz(null)}
+          theme={theme}
         />
       )}
     </div>
