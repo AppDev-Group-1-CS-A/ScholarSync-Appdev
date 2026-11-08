@@ -221,13 +221,13 @@ export default function ReaderStudyPane({
             onClick={generateQuiz}
             disabled={isQuizLoading}
             className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold transition-all shadow-sm hover:shadow disabled:cursor-not-allowed disabled:opacity-60"
-            title="Generate a 5-question active recall practice quiz with Groq AI"
+            title="Open Active Recall Studio with Flashcards & Quiz powered by Groq AI"
           >
             <Brain size={14} className={isQuizLoading ? "animate-pulse" : ""} />
             <span className="hidden sm:inline">
-              {isQuizLoading ? "Generating Quiz..." : "Practice Quiz"}
+              {isQuizLoading ? "Generating Cards..." : "Study Studio"}
             </span>
-            <span className="sm:hidden">{isQuizLoading ? "..." : "Quiz"}</span>
+            <span className="sm:hidden">{isQuizLoading ? "..." : "Study"}</span>
           </button>
         </div>
       </div>
@@ -329,18 +329,23 @@ export default function ReaderStudyPane({
                   </div>
                 )}
 
-                {/* Interactive Practice Quiz CTA */}
+                {/* Active Recall Studio CTA */}
                 <div
-                  className={`p-4 rounded-xl border flex items-center justify-between gap-3 text-xs ${currentStyles.card}`}
+                  className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${currentStyles.card}`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm">
                       <Brain size={18} />
                     </div>
                     <div>
-                      <p className="font-bold text-xs">Ready for Active Recall?</p>
-                      <p className="text-[11px] opacity-70">
-                        Take an instant 5-question multiple choice practice quiz.
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-xs">Active Recall Studio</p>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                          Flashcards & Quiz
+                        </span>
+                      </div>
+                      <p className="text-[11px] opacity-70 mt-0.5">
+                        Test your memory with spaced-repetition flashcards or take a practice quiz.
                       </p>
                     </div>
                   </div>
@@ -348,13 +353,13 @@ export default function ReaderStudyPane({
                     type="button"
                     onClick={generateQuiz}
                     disabled={isQuizLoading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 transition-all shadow-sm hover:shadow disabled:opacity-50"
+                    className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 transition-all shadow-sm hover:shadow disabled:opacity-50"
                   >
                     <Brain
                       size={13}
                       className={isQuizLoading ? "animate-pulse" : ""}
                     />
-                    <span>{isQuizLoading ? "Generating..." : "Start Quiz"}</span>
+                    <span>{isQuizLoading ? "Generating Cards..." : "Open Study Studio"}</span>
                   </button>
                 </div>
               </div>
