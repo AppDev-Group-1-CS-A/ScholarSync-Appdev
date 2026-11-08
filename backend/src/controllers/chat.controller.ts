@@ -340,10 +340,16 @@ function isPracticeQuiz(value: unknown): value is PracticeQuiz {
 
 export const generatePracticeQuiz = async (req: Request, res: Response) => {
   try {
-    const { bookId, bookTitle = "this textbook" } = req.body as {
+    const {
+      bookId,
+      bookTitle: rawBookTitle,
+      title,
+    } = req.body as {
       bookId?: string;
       bookTitle?: string;
+      title?: string;
     };
+    const bookTitle = rawBookTitle || title || "this textbook";
 
     if (!bookId) {
       return res.status(400).json({ success: false, error: "Missing bookId" });
