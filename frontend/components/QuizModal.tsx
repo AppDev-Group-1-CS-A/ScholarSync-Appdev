@@ -18,6 +18,7 @@ import {
   Layers,
   Repeat,
   Flame,
+  RefreshCw,
 } from "lucide-react";
 import { ReaderTheme } from "./ReaderAppearanceControls";
 
@@ -34,9 +35,12 @@ export interface PracticeQuiz {
 
 interface QuizModalProps {
   quiz: PracticeQuiz;
-  onClose: () => void;
+  onClose?: () => void;
   theme?: ReaderTheme;
   initialMode?: "flashcards" | "quiz";
+  isEmbedded?: boolean;
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
 }
 
 export default function QuizModal({
@@ -44,6 +48,9 @@ export default function QuizModal({
   onClose,
   theme = "light",
   initialMode = "flashcards",
+  isEmbedded = false,
+  onRegenerate,
+  isRegenerating = false,
 }: QuizModalProps) {
   // Study Mode: Flashcards vs Multiple Choice Quiz
   const [studyMode, setStudyMode] = useState<"flashcards" | "quiz">(initialMode);
@@ -147,7 +154,7 @@ export default function QuizModal({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        if (onClose) onClose();
         return;
       }
 
@@ -311,28 +318,36 @@ export default function QuizModal({
 
   const currentStyle = modalStyles[theme] || modalStyles.light;
 
+  const outerWrapperClass = isEmbedded
+    ? "flex-1 w-full h-full overflow-y-auto p-3 sm:p-6 lg:p-8 flex justify-center items-start animate-in fade-in duration-200"
+    : "fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-3 sm:p-5 backdrop-blur-md animate-in fade-in duration-200";
+
+  const cardClass = isEmbedded
+    ? `relative w-full max-w-3xl rounded-2xl sm:rounded-3xl border p-5 sm:p-8 transition-colors shadow-sm ${currentStyle.card}`
+    : `relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl sm:rounded-3xl border p-5 sm:p-8 transition-colors ${currentStyle.card}`;
+
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-3 sm:p-5 backdrop-blur-md animate-in fade-in duration-200"
-      role="dialog"
-      aria-modal="true"
+      className={outerWrapperClass}
+      role={isEmbedded ? "region" : "dialog"}
+      aria-modal={isEmbedded ? undefined : "true"}
       aria-labelledby="active-recall-studio-title"
     >
-      <div
-        className={`relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl sm:rounded-3xl border p-5 sm:p-8 transition-colors ${currentStyle.card}`}
-      >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close active recall studio"
-          className="absolute right-4 top-4 rounded-full p-2 text-slate-400 transition-colors hover:bg-black/5 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-100"
-        >
-          <X size={20} />
-        </button>
+      <div className={cardClass}>
+        {/* Close Button (shown when modal and onClose is provided) */}
+        {!isEmbedded && onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close active recall studio"
+            className="absolute right-4 top-4 rounded-full p-2 text-slate-400 transition-colors hover:bg-black/5 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-slate-100"
+          >
+            <X size={20} />
+          </button>
+        )}
 
         {/* Modal Header & Mode Switcher */}
-        <div className="mb-6 pr-10">
+        <div className={`mb-6 ${!isEmbedded && onClose ? "pr-10" : ""}`}>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">
               <span
@@ -346,36 +361,54 @@ export default function QuizModal({
               </span>
             </div>
 
-            {/* Segmented Mode Control: Flashcards vs Practice Quiz */}
-            <div className="flex items-center p-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-xs">
-              <button
-                type="button"
-                onClick={() => setStudyMode("flashcards")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                  studyMode === "flashcards"
-                    ? currentStyle.modeActive
-                    : currentStyle.modeInactive
-                }`}
-              >
-                <Layers size={13} />
-                <span>Flashcards</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/5 dark:bg-white/10 font-bold">
-                  {totalCards}
-                </span>
-              </button>
+            <div className="flex items-center gap-2">
+              {onRegenerate && (
+                <button
+                  type="button"
+                  onClick={onRegenerate}
+                  disabled={isRegenerating}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs opacity-75 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 transition-all font-semibold disabled:opacity-40"
+                  title="Regenerate new cards with Groq AI"
+                >
+                  <RefreshCw
+                    size={12}
+                    className={isRegenerating ? "animate-spin" : ""}
+                  />
+                  <span className="hidden sm:inline">Regenerate</span>
+                </button>
+              )}
 
-              <button
-                type="button"
-                onClick={() => setStudyMode("quiz")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                  studyMode === "quiz"
-                    ? currentStyle.modeActive
-                    : currentStyle.modeInactive
-                }`}
-              >
-                <Sparkles size={13} />
-                <span>Practice Quiz</span>
-              </button>
+              {/* Segmented Mode Control: Flashcards vs Practice Quiz */}
+              <div className="flex items-center p-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setStudyMode("flashcards")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    studyMode === "flashcards"
+                      ? currentStyle.modeActive
+                      : currentStyle.modeInactive
+                  }`}
+                >
+                  <Layers size={13} />
+                  <span>Flashcards</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/5 dark:bg-white/10 font-bold">
+                    {totalCards}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStudyMode("quiz")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                    studyMode === "quiz"
+                      ? currentStyle.modeActive
+                      : currentStyle.modeInactive
+                  }`}
+                >
+                  <Sparkles size={13} />
+                  <span>Practice Quiz</span>
+                </button>
+              </div>
             </div>
           </div>
 

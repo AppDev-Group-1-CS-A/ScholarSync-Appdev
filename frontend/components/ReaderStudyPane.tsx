@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { IBook } from "@/types";
 import { ReaderTheme } from "./ReaderAppearanceControls";
-import { getBookSummary } from "@/lib/actions/chat.actions";
+import { getBookSummary, getPracticeQuiz } from "@/lib/actions/chat.actions";
 import {
   Sparkles,
   FileText,
@@ -18,17 +18,16 @@ import Image from "next/image";
 import { toast } from "sonner";
 import QuizModal, { PracticeQuiz } from "./QuizModal";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.BACKEND_URL ||
-  "http://localhost:5000";
-
 interface ReaderStudyPaneProps {
   book: IBook;
   theme: ReaderTheme;
   fontSize: number;
   onQuoteToChat?: (text: string) => void;
   onAskConcept?: (concept: string) => void;
+  onOpenFlashcards?: () => void;
+  practiceQuiz?: PracticeQuiz | null;
+  onGenerateQuiz?: () => void;
+  isQuizLoading?: boolean;
 }
 
 export default function ReaderStudyPane({
@@ -36,6 +35,10 @@ export default function ReaderStudyPane({
   theme,
   fontSize,
   onAskConcept,
+  onOpenFlashcards,
+  practiceQuiz: externalPracticeQuiz,
+  onGenerateQuiz,
+  isQuizLoading: externalIsQuizLoading,
 }: ReaderStudyPaneProps) {
   const [activeTab, setActiveTab] = useState<"summary" | "info">("summary");
 
@@ -44,9 +47,28 @@ export default function ReaderStudyPane({
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryLoaded, setSummaryLoaded] = useState(false);
 
-  // Practice Quiz State
-  const [isQuizLoading, setIsQuizLoading] = useState(false);
-  const [practiceQuiz, setPracticeQuiz] = useState<PracticeQuiz | null>(null);
+  // Practice Quiz State (Fallback if not controlled externally)
+  const [internalQuizLoading, setInternalQuizLoading] = useState(false);
+  const [internalPracticeQuiz, setInternalPracticeQuiz] = useState<PracticeQuiz | null>(null);
+
+  const practiceQuiz =
+    externalPracticeQuiz !== undefined
+      ? externalPracticeQuiz
+      : internalPracticeQuiz;
+  const isQuizLoading =
+    externalIsQuizLoading !== undefined
+      ? externalIsQuizLoading
+      : internalQuizLoading;
+
+  const handleStudyAction = () => {
+    if (onOpenFlashcards) {
+      onOpenFlashcards();
+    } else if (onGenerateQuiz) {
+      onGenerateQuiz();
+    } else {
+      generateQuiz();
+    }
+  };
 
   // Fetch initial summary from cache or storage if available
   useEffect(() => {
@@ -87,31 +109,13 @@ export default function ReaderStudyPane({
   };
 
   const generateQuiz = async () => {
-    setIsQuizLoading(true);
+    setInternalQuizLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/chat/quiz`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": book.userId,
-        },
-        body: JSON.stringify({
-          bookId: book._id,
-          bookTitle: book.title,
-          userId: book.userId,
-        }),
-      });
-      const result = (await response.json()) as {
-        success: boolean;
-        data?: PracticeQuiz;
-        error?: string;
-      };
-
-      if (!response.ok || !result.success || !result.data) {
+      const result = await getPracticeQuiz(book._id, book.title, book.userId);
+      if (!result.success || !result.data) {
         throw new Error(result.error || "Failed to generate practice quiz");
       }
-
-      setPracticeQuiz(result.data);
+      setInternalPracticeQuiz(result.data);
     } catch (error) {
       console.error("Practice quiz request failed:", error);
       toast.error(
@@ -120,7 +124,7 @@ export default function ReaderStudyPane({
           : "Failed to connect to the practice quiz service",
       );
     } finally {
-      setIsQuizLoading(false);
+      setInternalQuizLoading(false);
     }
   };
 
@@ -218,7 +222,7 @@ export default function ReaderStudyPane({
 
           <button
             type="button"
-            onClick={generateQuiz}
+            onClick={handleStudyAction}
             disabled={isQuizLoading}
             className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold transition-all shadow-sm hover:shadow disabled:cursor-not-allowed disabled:opacity-60"
             title="Open Active Recall Studio with Flashcards & Quiz powered by Groq AI"
@@ -351,7 +355,7 @@ export default function ReaderStudyPane({
                   </div>
                   <button
                     type="button"
-                    onClick={generateQuiz}
+                    onClick={handleStudyAction}
                     disabled={isQuizLoading}
                     className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 transition-all shadow-sm hover:shadow disabled:opacity-50"
                   >
@@ -443,10 +447,10 @@ export default function ReaderStudyPane({
         )}
       </div>
 
-      {practiceQuiz && (
+      {!onOpenFlashcards && practiceQuiz && (
         <QuizModal
           quiz={practiceQuiz}
-          onClose={() => setPracticeQuiz(null)}
+          onClose={() => setInternalPracticeQuiz(null)}
           theme={theme}
         />
       )}
