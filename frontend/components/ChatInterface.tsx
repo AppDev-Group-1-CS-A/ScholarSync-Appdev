@@ -868,18 +868,16 @@ const ChatInterface = ({ book }: { book: IBook }) => {
         >
           {/* Left: Sidebar Toggle + Book Identity */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
-              title={isSidebarOpen ? "Collapse sidebar" : "Open sidebar"}
-            >
-              {isSidebarOpen ? (
-                <PanelLeftClose size={19} />
-              ) : (
+            {!isSidebarOpen && (
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
+                title="Open sidebar"
+              >
                 <PanelLeftOpen size={19} />
-              )}
-            </button>
+              </button>
+            )}
 
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="h-9 w-7 relative shadow-sm rounded overflow-hidden hidden sm:block shrink-0 border border-black/10">
