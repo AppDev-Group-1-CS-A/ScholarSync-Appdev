@@ -26,6 +26,8 @@ import {
   Plus,
   MessageSquare,
   Clock,
+  Layers,
+  Brain,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,6 +35,7 @@ import {
   chatWithBook,
   clearChatHistory,
   getChatHistory,
+  getPracticeQuiz,
 } from "@/lib/actions/chat.actions";
 import { toast } from "sonner";
 import useVapi from "@/hooks/useVapi";
@@ -40,6 +43,7 @@ import ReaderAppearanceControls, {
   ReaderTheme,
 } from "./ReaderAppearanceControls";
 import ReaderStudyPane from "./ReaderStudyPane";
+import QuizModal, { PracticeQuiz } from "./QuizModal";
 
 export interface ChatSession {
   id: string;
@@ -61,10 +65,35 @@ const ChatInterface = ({ book }: { book: IBook }) => {
 
   // Left Sidebar State (Claude style collapsible sidebar + Chat History)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [sidebarTab, setSidebarTab] = useState<"history" | "study">("history");
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [readingProgress, setReadingProgress] = useState(0);
+
+  // Top Workspace Switcher (Approach 1: Chat vs Flashcards & Quiz vs Study Guide)
+  const [activeWorkspace, setActiveWorkspace] = useState<"chat" | "study" | "guide">("chat");
+  const [practiceQuiz, setPracticeQuiz] = useState<PracticeQuiz | null>(null);
+  const [isQuizLoading, setIsQuizLoading] = useState(false);
+
+  const generateQuiz = async () => {
+    setIsQuizLoading(true);
+    try {
+      const result = await getPracticeQuiz(book._id, book.title, book.userId);
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Failed to generate practice quiz");
+      }
+      setPracticeQuiz(result.data);
+      toast.success("Active Recall Studio deck ready!");
+    } catch (error) {
+      console.error("Practice quiz request failed:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to connect to the practice quiz service",
+      );
+    } finally {
+      setIsQuizLoading(false);
+    }
+  };
 
   // Reader Appearance Controls (FE-01: Light, Sepia & Dark Mode + Font Scaling)
   const [theme, setTheme] = useState<ReaderTheme>("light");
@@ -219,6 +248,8 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       sidebarFooter: "bg-[#f7f3eb] border-black/10 text-[#212a3b]",
       tabActive: "bg-white text-[#663820] shadow-xs font-bold",
       tabInactive: "text-[#212a3b]/70 hover:text-[#212a3b] hover:bg-black/5",
+      workspaceActive: "bg-white text-[#663820] shadow-xs font-bold",
+      workspaceInactive: "text-[#212a3b]/70 hover:text-[#212a3b] hover:bg-black/5",
       sessionActive:
         "bg-[#f3e4c7] text-[#663820] font-bold shadow-xs border border-[#dec8a0]",
       sessionInactive:
@@ -248,6 +279,8 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       sidebarFooter: "bg-[#ebd9b8] border-[#dec8a0] text-[#433422]",
       tabActive: "bg-[#fff8ea] text-[#663820] shadow-xs font-bold",
       tabInactive: "text-[#433422]/70 hover:text-[#433422] hover:bg-black/5",
+      workspaceActive: "bg-[#fff8ea] text-[#663820] shadow-xs font-bold",
+      workspaceInactive: "text-[#433422]/70 hover:text-[#433422] hover:bg-black/5",
       sessionActive:
         "bg-[#eed8b6] text-[#433422] font-bold shadow-xs border border-[#dec8a0]",
       sessionInactive:
@@ -277,6 +310,8 @@ const ChatInterface = ({ book }: { book: IBook }) => {
       sidebarFooter: "bg-[#181926] border-[#363a4f] text-[#cad3f5]",
       tabActive: "bg-[#24273a] text-[#f5a97f] shadow-xs font-bold",
       tabInactive: "text-[#cad3f5]/70 hover:text-[#cad3f5] hover:bg-white/5",
+      workspaceActive: "bg-[#24273a] text-emerald-400 shadow-xs font-bold",
+      workspaceInactive: "text-[#cad3f5]/70 hover:text-[#cad3f5] hover:bg-white/5",
       sessionActive:
         "bg-[#24273a] text-[#f5a97f] font-bold shadow-xs border border-[#363a4f]",
       sessionInactive:
@@ -719,123 +754,83 @@ const ChatInterface = ({ book }: { book: IBook }) => {
           </button>
         </div>
 
-        {/* Sidebar Tabs: Conversations vs Study Guide */}
-        <div className="px-3 pb-2 flex gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => setSidebarTab("history")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-              sidebarTab === "history"
-                ? currentStyles.tabActive
-                : currentStyles.tabInactive
-            }`}
-          >
-            <MessageSquare size={13} />
-            <span>History</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/10 dark:bg-white/10 font-bold">
-              {sessions.length}
+        {/* Sidebar Body: Conversation History */}
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
+          <div className="flex items-center justify-between px-1 pb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">
+              Recent Conversations
             </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setSidebarTab("study")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-              sidebarTab === "study"
-                ? currentStyles.tabActive
-                : currentStyles.tabInactive
-            }`}
-          >
-            <BookOpen size={13} />
-            <span>Study Guide</span>
-          </button>
-        </div>
+            <span className="text-[10px] opacity-50 font-mono">
+              {sessions.length}{" "}
+              {sessions.length === 1 ? "thread" : "threads"}
+            </span>
+          </div>
 
-        {/* Sidebar Body */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {sidebarTab === "history" ? (
-            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
-              <div className="flex items-center justify-between px-1 pb-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider opacity-60">
-                  Recent Conversations
-                </span>
-                <span className="text-[10px] opacity-50 font-mono">
-                  {sessions.length}{" "}
-                  {sessions.length === 1 ? "thread" : "threads"}
-                </span>
-              </div>
-
-              {sessions.length === 0 ? (
-                <div className="text-center py-8 px-4 opacity-60">
-                  <MessageCircle
-                    size={28}
-                    className="mx-auto mb-2 opacity-40"
-                  />
-                  <p className="text-xs font-medium">
-                    No saved conversations yet
-                  </p>
-                  <p className="text-[11px] mt-1 opacity-75">
-                    Start a chat or ask a question to begin
-                  </p>
-                </div>
-              ) : (
-                sessions.map((session) => {
-                  const isActive = session.id === activeSessionId;
-                  const messageCount = session.messages?.length || 0;
-                  return (
-                    <div
-                      key={session.id}
-                      onClick={() => handleSelectSession(session.id)}
-                      className={`group relative flex items-start gap-2.5 p-2.5 rounded-xl cursor-pointer transition-all ${
-                        isActive
-                          ? currentStyles.sessionActive
-                          : currentStyles.sessionInactive
-                      }`}
-                    >
-                      <MessageSquare
-                        size={15}
-                        className={`shrink-0 mt-0.5 ${
-                          isActive
-                            ? "text-[#663820] dark:text-[#f5a97f]"
-                            : "opacity-60 group-hover:opacity-100"
-                        }`}
-                      />
-                      <div className="flex-1 min-w-0 pr-6">
-                        <p className="text-xs font-medium truncate leading-tight">
-                          {session.title || "Conversation"}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-1 text-[10px] opacity-60">
-                          <Clock size={10} />
-                          <span>{formatRelativeTime(session.updatedAt)}</span>
-                          <span>•</span>
-                          <span>
-                            {messageCount}{" "}
-                            {messageCount === 1 ? "msg" : "msgs"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Delete Conversation Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteSession(e, session.id)}
-                        className="absolute right-2 top-2.5 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 hover:text-red-500 transition-all"
-                        title="Delete conversation"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  );
-                })
-              )}
+          {sessions.length === 0 ? (
+            <div className="text-center py-8 px-4 opacity-60">
+              <MessageCircle
+                size={28}
+                className="mx-auto mb-2 opacity-40"
+              />
+              <p className="text-xs font-medium">
+                No saved conversations yet
+              </p>
+              <p className="text-[11px] mt-1 opacity-75">
+                Start a chat or ask a question to begin
+              </p>
             </div>
           ) : (
-            <ReaderStudyPane
-              book={book}
-              theme={theme}
-              fontSize={fontSize}
-              onQuoteToChat={handleQuoteToChat}
-              onAskConcept={handleAskConcept}
-            />
+            sessions.map((session) => {
+              const isActive = session.id === activeSessionId;
+              const messageCount = session.messages?.length || 0;
+              return (
+                <div
+                  key={session.id}
+                  onClick={() => {
+                    handleSelectSession(session.id);
+                    setActiveWorkspace("chat");
+                  }}
+                  className={`group relative flex items-start gap-2.5 p-2.5 rounded-xl cursor-pointer transition-all ${
+                    isActive
+                      ? currentStyles.sessionActive
+                      : currentStyles.sessionInactive
+                  }`}
+                >
+                  <MessageSquare
+                    size={15}
+                    className={`shrink-0 mt-0.5 ${
+                      isActive
+                        ? "text-[#663820] dark:text-[#f5a97f]"
+                        : "opacity-60 group-hover:opacity-100"
+                    }`}
+                  />
+                  <div className="flex-1 min-w-0 pr-6">
+                    <p className="text-xs font-medium truncate leading-tight">
+                      {session.title || "Conversation"}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1 text-[10px] opacity-60">
+                      <Clock size={10} />
+                      <span>{formatRelativeTime(session.updatedAt)}</span>
+                      <span>•</span>
+                      <span>
+                        {messageCount}{" "}
+                        {messageCount === 1 ? "msg" : "msgs"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Delete Conversation Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteSession(e, session.id)}
+                    className="absolute right-2 top-2.5 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 hover:text-red-500 transition-all"
+                    title="Delete conversation"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
 
@@ -868,18 +863,16 @@ const ChatInterface = ({ book }: { book: IBook }) => {
         >
           {/* Left: Sidebar Toggle + Book Identity */}
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
-              title={isSidebarOpen ? "Collapse sidebar" : "Open sidebar"}
-            >
-              {isSidebarOpen ? (
-                <PanelLeftClose size={19} />
-              ) : (
+            {!isSidebarOpen && (
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
+                title="Open sidebar"
+              >
                 <PanelLeftOpen size={19} />
-              )}
-            </button>
+              </button>
+            )}
 
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="h-9 w-7 relative shadow-sm rounded overflow-hidden hidden sm:block shrink-0 border border-black/10">
@@ -911,6 +904,64 @@ const ChatInterface = ({ book }: { book: IBook }) => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Center: Top-Level Workspace Switcher (Approach 1) */}
+          <div className="flex items-center p-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-xs shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveWorkspace("chat")}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all font-semibold ${
+                activeWorkspace === "chat"
+                  ? currentStyles.workspaceActive
+                  : currentStyles.workspaceInactive
+              }`}
+              title="Open AI Chat & Voice Assistant"
+            >
+              <MessageSquare size={13} />
+              <span className="hidden sm:inline">AI Chat</span>
+              <span className="sm:hidden">Chat</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!practiceQuiz && !isQuizLoading) {
+                  generateQuiz();
+                }
+                setActiveWorkspace("study");
+              }}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all font-semibold ${
+                activeWorkspace === "study"
+                  ? currentStyles.workspaceActive
+                  : currentStyles.workspaceInactive
+              }`}
+              title="Open Interactive Flashcards & Practice Quiz"
+            >
+              <Layers size={13} />
+              <span className="hidden sm:inline">Flashcards & Quiz</span>
+              <span className="sm:hidden">Study</span>
+              {practiceQuiz?.questions?.length && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold hidden sm:inline-block">
+                  {practiceQuiz.questions.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveWorkspace("guide")}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all font-semibold ${
+                activeWorkspace === "guide"
+                  ? currentStyles.workspaceActive
+                  : currentStyles.workspaceInactive
+              }`}
+              title="Open Textbook Study Guide & Concepts"
+            >
+              <BookOpen size={13} />
+              <span className="hidden sm:inline">Study Guide</span>
+              <span className="sm:hidden">Guide</span>
+            </button>
           </div>
 
           {/* Right Controls: Appearance, Voice Toggle, Fullscreen */}
@@ -963,9 +1014,12 @@ const ChatInterface = ({ book }: { book: IBook }) => {
           />
         </div>
 
-        {/* Chat Message Scroll Area (Centered Claude Stream) */}
-        <div
-          onScroll={handleScroll}
+        {/* ================= WORKSPACE VIEW 1: AI CHAT ================= */}
+        {activeWorkspace === "chat" && (
+          <>
+            {/* Chat Message Scroll Area (Centered Claude Stream) */}
+            <div
+              onScroll={handleScroll}
           className={`flex-1 overflow-y-auto px-4 sm:px-8 py-6 space-y-6 scroll-smooth transition-colors duration-300 ${currentStyles.messagesBg}`}
         >
           {displayMessages.length === 0 &&
@@ -1277,6 +1331,124 @@ const ChatInterface = ({ book }: { book: IBook }) => {
             <span>Educational Assistant</span>
           </div>
         </div>
+      </>
+    )}
+
+    {/* ================= WORKSPACE VIEW 2: ACTIVE RECALL STUDIO (FLASHCARDS & QUIZ) ================= */}
+    {activeWorkspace === "study" && (
+      !practiceQuiz ? (
+        <div
+          className={`flex-1 overflow-y-auto p-4 sm:p-8 flex items-center justify-center animate-in fade-in duration-200 ${currentStyles.messagesBg}`}
+        >
+          <div
+            className={`max-w-xl w-full rounded-3xl border p-6 sm:p-10 text-center space-y-6 shadow-sm ${currentStyles.promptCard}`}
+          >
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md">
+              <Brain
+                size={32}
+                className={isQuizLoading ? "animate-pulse" : ""}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <Sparkles size={12} />
+                Active Recall Studio
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold">
+                {book.title}
+              </h2>
+              <p className="text-xs sm:text-sm opacity-70 max-w-md mx-auto leading-relaxed">
+                Test your memory with interactive 3D flashcards and multiple-choice questions formulated directly from key textbook concepts.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+              <div className="p-4 rounded-2xl border bg-black/[0.02] dark:bg-white/[0.02] space-y-1">
+                <div className="flex items-center gap-2 font-bold text-xs">
+                  <Layers size={14} className="text-emerald-500" />
+                  <span>Spaced Repetition</span>
+                </div>
+                <p className="text-[11px] opacity-60 leading-relaxed">
+                  Flip cards and rate confidence from 1 to 3. Weak concepts recycle until mastered.
+                </p>
+              </div>
+              <div className="p-4 rounded-2xl border bg-black/[0.02] dark:bg-white/[0.02] space-y-1">
+                <div className="flex items-center gap-2 font-bold text-xs">
+                  <Sparkles size={14} className="text-teal-500" />
+                  <span>Practice Quiz</span>
+                </div>
+                <p className="text-[11px] opacity-60 leading-relaxed">
+                  5 multiple-choice questions with instant textbook context and explanations.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={generateQuiz}
+              disabled={isQuizLoading}
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+            >
+              <Brain
+                size={18}
+                className={isQuizLoading ? "animate-spin" : ""}
+              />
+              <span>
+                {isQuizLoading
+                  ? "Formulating Cards with Groq AI..."
+                  : "Generate Active Recall Deck"}
+              </span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          className={`flex-1 overflow-hidden flex flex-col ${currentStyles.messagesBg}`}
+        >
+          <QuizModal
+            quiz={practiceQuiz}
+            theme={theme}
+            isEmbedded={true}
+            onRegenerate={generateQuiz}
+            isRegenerating={isQuizLoading}
+            onClose={() => setActiveWorkspace("chat")}
+          />
+        </div>
+      )
+    )}
+
+    {/* ================= WORKSPACE VIEW 3: FULL-CANVAS STUDY GUIDE ================= */}
+    {activeWorkspace === "guide" && (
+      <div
+        className={`flex-1 overflow-hidden flex flex-col ${currentStyles.messagesBg}`}
+      >
+        <ReaderStudyPane
+          book={book}
+          theme={theme}
+          fontSize={fontSize}
+          onQuoteToChat={(quote) => {
+            setInput((prev) =>
+              prev ? `${prev}\n\n> ${quote}\n` : `> ${quote}\n`,
+            );
+            setActiveWorkspace("chat");
+          }}
+          onAskConcept={(concept) => {
+            handleAskConcept(concept);
+            setActiveWorkspace("chat");
+          }}
+          onOpenFlashcards={() => {
+            if (!practiceQuiz && !isQuizLoading) {
+              generateQuiz();
+            }
+            setActiveWorkspace("study");
+          }}
+          practiceQuiz={practiceQuiz}
+          onGenerateQuiz={generateQuiz}
+          isQuizLoading={isQuizLoading}
+        />
+      </div>
+    )}
       </main>
     </div>
   );

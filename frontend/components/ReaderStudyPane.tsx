@@ -3,25 +3,20 @@
 import { useState, useEffect } from "react";
 import { IBook } from "@/types";
 import { ReaderTheme } from "./ReaderAppearanceControls";
-import { getBookSummary } from "@/lib/actions/chat.actions";
-import { searchBookSegments } from "@/lib/actions/book.actions";
+import { getBookSummary, getPracticeQuiz } from "@/lib/actions/chat.actions";
 import {
-  BookOpen,
   Sparkles,
   FileText,
-  Search,
   Loader2,
-  Quote,
   MessageSquarePlus,
   RefreshCw,
   ExternalLink,
-  Layers,
   CheckCircle2,
-  AlertCircle,
-  HelpCircle,
+  Brain,
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import QuizModal, { PracticeQuiz } from "./QuizModal";
 
 interface ReaderStudyPaneProps {
   book: IBook;
@@ -29,28 +24,51 @@ interface ReaderStudyPaneProps {
   fontSize: number;
   onQuoteToChat?: (text: string) => void;
   onAskConcept?: (concept: string) => void;
+  onOpenFlashcards?: () => void;
+  practiceQuiz?: PracticeQuiz | null;
+  onGenerateQuiz?: () => void;
+  isQuizLoading?: boolean;
 }
 
 export default function ReaderStudyPane({
   book,
   theme,
   fontSize,
-  onQuoteToChat,
   onAskConcept,
+  onOpenFlashcards,
+  practiceQuiz: externalPracticeQuiz,
+  onGenerateQuiz,
+  isQuizLoading: externalIsQuizLoading,
 }: ReaderStudyPaneProps) {
-  const [activeTab, setActiveTab] = useState<"summary" | "segments" | "info">(
-    "summary"
-  );
+  const [activeTab, setActiveTab] = useState<"summary" | "info">("summary");
 
   // Summary State
   const [summary, setSummary] = useState<string>("");
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryLoaded, setSummaryLoaded] = useState(false);
 
-  // Segments State
-  const [segments, setSegments] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSegmentsLoading, setIsSegmentsLoading] = useState(false);
+  // Practice Quiz State (Fallback if not controlled externally)
+  const [internalQuizLoading, setInternalQuizLoading] = useState(false);
+  const [internalPracticeQuiz, setInternalPracticeQuiz] = useState<PracticeQuiz | null>(null);
+
+  const practiceQuiz =
+    externalPracticeQuiz !== undefined
+      ? externalPracticeQuiz
+      : internalPracticeQuiz;
+  const isQuizLoading =
+    externalIsQuizLoading !== undefined
+      ? externalIsQuizLoading
+      : internalQuizLoading;
+
+  const handleStudyAction = () => {
+    if (onOpenFlashcards) {
+      onOpenFlashcards();
+    } else if (onGenerateQuiz) {
+      onGenerateQuiz();
+    } else {
+      generateQuiz();
+    }
+  };
 
   // Fetch initial summary from cache or storage if available
   useEffect(() => {
@@ -65,13 +83,6 @@ export default function ReaderStudyPane({
       // Ignore localStorage errors
     }
   }, [book._id]);
-
-  // Load Book Segments when tab is opened
-  useEffect(() => {
-    if (activeTab === "segments" && segments.length === 0) {
-      loadSegments("");
-    }
-  }, [activeTab]);
 
   const loadSummary = async () => {
     setIsSummaryLoading(true);
@@ -97,23 +108,24 @@ export default function ReaderStudyPane({
     }
   };
 
-  const loadSegments = async (query: string) => {
-    setIsSegmentsLoading(true);
+  const generateQuiz = async () => {
+    setInternalQuizLoading(true);
     try {
-      const res = await searchBookSegments(book._id, query, 15);
-      if (res.success && Array.isArray(res.data)) {
-        setSegments(res.data);
+      const result = await getPracticeQuiz(book._id, book.title, book.userId);
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Failed to generate practice quiz");
       }
-    } catch (err) {
-      console.error("Error searching segments:", err);
+      setInternalPracticeQuiz(result.data);
+    } catch (error) {
+      console.error("Practice quiz request failed:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to connect to the practice quiz service",
+      );
     } finally {
-      setIsSegmentsLoading(false);
+      setInternalQuizLoading(false);
     }
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    loadSegments(searchQuery);
   };
 
   // Theme-aware styles for the Study Pane
@@ -179,19 +191,6 @@ export default function ReaderStudyPane({
 
           <button
             type="button"
-            onClick={() => setActiveTab("segments")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
-              activeTab === "segments"
-                ? currentStyles.tabActive
-                : currentStyles.tabInactive
-            }`}
-          >
-            <BookOpen size={14} />
-            <span>Book Excerpts</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab("info")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
               activeTab === "info"
@@ -204,21 +203,37 @@ export default function ReaderStudyPane({
           </button>
         </div>
 
-        {activeTab === "summary" && summaryLoaded && (
+        <div className="flex items-center gap-2">
+          {activeTab === "summary" && summaryLoaded && (
+            <button
+              type="button"
+              onClick={loadSummary}
+              disabled={isSummaryLoading}
+              className="flex items-center gap-1 text-[11px] font-bold opacity-70 hover:opacity-100 p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+              title="Regenerate summary with AI"
+            >
+              <RefreshCw
+                size={12}
+                className={isSummaryLoading ? "animate-spin" : ""}
+              />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={loadSummary}
-            disabled={isSummaryLoading}
-            className="flex items-center gap-1 text-[11px] font-bold opacity-70 hover:opacity-100 p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-all"
-            title="Regenerate summary with AI"
+            onClick={handleStudyAction}
+            disabled={isQuizLoading}
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold transition-all shadow-sm hover:shadow disabled:cursor-not-allowed disabled:opacity-60"
+            title="Open Active Recall Studio with Flashcards & Quiz powered by Groq AI"
           >
-            <RefreshCw
-              size={12}
-              className={isSummaryLoading ? "animate-spin" : ""}
-            />
-            <span className="hidden sm:inline">Refresh</span>
+            <Brain size={14} className={isQuizLoading ? "animate-pulse" : ""} />
+            <span className="hidden sm:inline">
+              {isQuizLoading ? "Generating Cards..." : "Study Studio"}
+            </span>
+            <span className="sm:hidden">{isQuizLoading ? "..." : "Study"}</span>
           </button>
-        )}
+        </div>
       </div>
 
       {/* Pane Content Area */}
@@ -257,7 +272,10 @@ export default function ReaderStudyPane({
               <div
                 className={`p-12 rounded-2xl text-center border flex flex-col items-center justify-center space-y-4 ${currentStyles.card}`}
               >
-                <Loader2 size={32} className="animate-spin text-[#663820] dark:text-[#f5a97f]" />
+                <Loader2
+                  size={32}
+                  className="animate-spin text-[#663820] dark:text-[#f5a97f]"
+                />
                 <h4 className="font-bold text-sm">
                   Analyzing textbook segments with Groq...
                 </h4>
@@ -273,7 +291,10 @@ export default function ReaderStudyPane({
                   className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${currentStyles.cardAccent}`}
                 >
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <CheckCircle2
+                      size={16}
+                      className="text-emerald-600 shrink-0"
+                    />
                     <span className="text-xs font-semibold">
                       Study Summary for: <strong>{book.title}</strong>
                     </span>
@@ -311,96 +332,46 @@ export default function ReaderStudyPane({
                     </button>
                   </div>
                 )}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* ================= TAB 2: BOOK EXCERPTS & SEGMENTS ================= */}
-        {activeTab === "segments" && (
-          <div className="space-y-4 max-w-3xl mx-auto">
-            {/* Search form */}
-            <form onSubmit={handleSearchSubmit} className="flex gap-2">
-              <div className="relative flex-1">
-                <Search
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 opacity-50"
-                />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search pages, keywords, or topics..."
-                  className={`w-full pl-9 pr-4 py-2.5 rounded-xl border text-xs focus:outline-none focus:ring-2 focus:ring-[#663820] ${currentStyles.card}`}
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-4 py-2.5 rounded-xl bg-[#663820] text-white text-xs font-bold hover:bg-[#7a4528] transition-colors"
-              >
-                Search
-              </button>
-            </form>
-
-            {isSegmentsLoading ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-2">
-                <Loader2 size={24} className="animate-spin text-[#663820]" />
-                <span className="text-xs opacity-60">
-                  Retrieving indexed book pages...
-                </span>
-              </div>
-            ) : segments.length === 0 ? (
-              <div
-                className={`p-8 rounded-2xl text-center border ${currentStyles.card}`}
-              >
-                <HelpCircle size={24} className="mx-auto mb-2 opacity-40" />
-                <h4 className="font-bold text-sm mb-1">No Segments Found</h4>
-                <p className="text-xs opacity-60 max-w-xs mx-auto">
-                  Try searching for another keyword or check if the book has
-                  finished indexing.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {segments.map((seg, idx) => (
-                  <div
-                    key={seg._id || idx}
-                    className={`p-4 rounded-xl border transition-all hover:shadow-sm ${currentStyles.card}`}
-                  >
-                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-black/5 dark:border-white/5 text-[11px] opacity-70">
-                      <span className="font-semibold">
-                        Page {seg.pageNumber || Math.floor((seg.segmentIndex || idx) / 2) + 1}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span>{seg.wordCount || 100} words</span>
-                        {onQuoteToChat && (
-                          <button
-                            type="button"
-                            onClick={() => onQuoteToChat(seg.content)}
-                            className={`flex items-center gap-1 font-bold px-2 py-0.5 rounded-md transition-colors ${currentStyles.quoteBtn}`}
-                            title="Quote this passage to AI Tutor"
-                          >
-                            <Quote size={12} />
-                            <span>Ask AI</span>
-                          </button>
-                        )}
-                      </div>
+                {/* Active Recall Studio CTA */}
+                <div
+                  className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${currentStyles.card}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <Brain size={18} />
                     </div>
-
-                    <p
-                      style={{ fontSize: `${Math.max(13, fontSize - 1)}px` }}
-                      className="leading-relaxed whitespace-pre-wrap"
-                    >
-                      {seg.content}
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-xs">Active Recall Studio</p>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                          Flashcards & Quiz
+                        </span>
+                      </div>
+                      <p className="text-[11px] opacity-70 mt-0.5">
+                        Test your memory with spaced-repetition flashcards or take a practice quiz.
+                      </p>
+                    </div>
                   </div>
-                ))}
+                  <button
+                    type="button"
+                    onClick={handleStudyAction}
+                    disabled={isQuizLoading}
+                    className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 transition-all shadow-sm hover:shadow disabled:opacity-50"
+                  >
+                    <Brain
+                      size={13}
+                      className={isQuizLoading ? "animate-pulse" : ""}
+                    />
+                    <span>{isQuizLoading ? "Generating Cards..." : "Open Study Studio"}</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* ================= TAB 3: BOOK DETAILS & METRICS ================= */}
+        {/* ================= TAB 2: BOOK DETAILS & METRICS ================= */}
         {activeTab === "info" && (
           <div className="space-y-4 max-w-3xl mx-auto">
             <div className={`p-6 rounded-2xl border ${currentStyles.card}`}>
@@ -442,18 +413,16 @@ export default function ReaderStudyPane({
                         File Size
                       </span>
                       <span className="font-bold text-sm">
-                        {book.fileSize
-                          ? `${(book.fileSize / 1024 / 1024).toFixed(1)} MB`
-                          : "1.2 MB"}
+                        {(book.fileSize / (1024 * 1024)).toFixed(1)} MB
                       </span>
                     </div>
 
-                    <div className={`p-2.5 rounded-xl ${currentStyles.badge}`}>
+                    <div className={`p-2.5 rounded-xl col-span-2 sm:col-span-1 ${currentStyles.badge}`}>
                       <span className="text-[10px] uppercase block opacity-60">
-                        AI Tutor Mode
+                        Added On
                       </span>
-                      <span className="font-bold text-sm capitalize">
-                        {book.persona || "Academic"}
+                      <span className="font-bold text-xs truncate block">
+                        {new Date(book.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
@@ -477,6 +446,14 @@ export default function ReaderStudyPane({
           </div>
         )}
       </div>
+
+      {!onOpenFlashcards && practiceQuiz && (
+        <QuizModal
+          quiz={practiceQuiz}
+          onClose={() => setInternalPracticeQuiz(null)}
+          theme={theme}
+        />
+      )}
     </div>
   );
 }

@@ -123,3 +123,41 @@ export const getBookSummary = async (bookId: string, bookTitle: string) => {
   }
 };
 
+export const getPracticeQuiz = async (
+  bookId: string,
+  bookTitle: string,
+  userId?: string
+) => {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/chat/quiz`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-id": userId || "",
+      },
+      body: JSON.stringify({
+        bookId,
+        bookTitle,
+        userId,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || `Backend error: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Quiz Action Error (calling backend):", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to generate practice quiz from AI",
+    };
+  }
+};
+
+
