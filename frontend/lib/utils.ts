@@ -92,7 +92,8 @@ export const formatDuration = (seconds: number): string => {
 
 export async function parsePDFFile(file: File) {
   try {
-    const pdfjsLib: any = await import("pdfjs-dist");
+    // @ts-ignore - Import the pre-bundled minified production build to avoid Webpack eval-source-map issues in Next.js dev mode
+    const pdfjsLib: any = await import("pdfjs-dist/build/pdf.min.mjs");
 
     if (typeof window !== "undefined") {
       pdfjsLib.GlobalWorkerOptions.workerSrc =
