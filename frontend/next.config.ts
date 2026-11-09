@@ -21,6 +21,19 @@ const nextConfig: NextConfig = {
   httpAgentOptions: {
     keepAlive: true,
   },
+  turbopack: {},
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      // Avoid eval-source-map conflict with pdfjs-dist ESM in development
+      config.devtool = "cheap-module-source-map";
+    }
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "pdfjs-dist$": "pdfjs-dist/build/pdf.min.mjs",
+      canvas: false,
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
