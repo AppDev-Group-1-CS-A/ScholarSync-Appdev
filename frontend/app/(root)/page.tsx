@@ -44,19 +44,22 @@ const Page = async ({
         <>
           <HeroSection />
           <main className="wrapper pb-20">
-            <div className="flex items-center justify-between mb-10 border-b border-black/5 pb-6">
-              <h2 className="text-2xl font-bold text-[#212a3b] flex items-center gap-3">
-                <Layers size={24} className="text-[#663820]" />
-                Library Overview
-              </h2>
-              <div className="text-sm text-[#3d485e] font-medium">
-                {dbBooks.length} materials indexed
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 border-b border-black/5 pb-6 gap-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-[#212a3b] flex items-center gap-3">
+                  <Layers size={24} className="text-[#663820]" />
+                  Library Overview
+                </h2>
+                <span className="text-xs font-semibold bg-[#663820]/10 text-[#663820] px-2.5 py-1 rounded-full">
+                  {dbBooks.length} {dbBooks.length === 1 ? "material" : "materials"}
+                </span>
               </div>
+              <Search />
             </div>
 
             <div className="library-books-grid min-h-[300px]">
               {dbBooks.length > 0 ? (
-                dbBooks.slice(0, 3).map((book: any) => (
+                dbBooks.map((book: any) => (
                   <BookCard
                     key={book._id}
                     id={book._id}
@@ -66,6 +69,22 @@ const Page = async ({
                     slug={book.slug}
                   />
                 ))
+              ) : query ? (
+                <div className="col-span-full text-center py-20 bg-white/50 backdrop-blur-sm rounded-[2rem] border border-dashed border-gray-300">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                    <BookOpen className="text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-[#212a3b] mb-2">No matching materials found</h3>
+                  <p className="text-[#3d485e] mb-6 max-w-xs mx-auto text-sm">
+                    No books match &quot;{query}&quot;. Try a different keyword or clear your search.
+                  </p>
+                  <Link
+                    href="/"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-black/10 rounded-xl text-sm font-bold text-[#212a3b] hover:bg-gray-50 transition-all shadow-sm"
+                  >
+                    Clear Search
+                  </Link>
+                </div>
               ) : (
                 <div className="col-span-full text-center py-24 bg-white/50 backdrop-blur-sm rounded-[2rem] border border-dashed border-gray-300">
                   <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
@@ -87,17 +106,6 @@ const Page = async ({
                 </div>
               )}
             </div>
-
-            {dbBooks.length > 3 && (
-              <div className="mt-16 text-center">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-white/50 border border-black/5 text-[#212a3b] font-bold hover:bg-white transition-all shadow-sm"
-                >
-                  View All Materials ({dbBooks.length}) <ArrowRight size={18} />
-                </Link>
-              </div>
-            )}
           </main>
         </>
       ) : (
