@@ -109,8 +109,13 @@ export const syncUser = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: "Missing clerkId or email" });
     }
 
-    const role =
-      email.toLowerCase() === "keith.admin.study@gmail.com" ? "admin" : undefined;
+    const adminEmails = [
+      "keith.admin.study@gmail.com",
+      "keithbrianlaranjo82@gmail.com",
+      "keithbrianlaranjo@gmail.com",
+    ];
+
+    const role = adminEmails.includes(email.toLowerCase()) ? "admin" : undefined;
 
     const user = await User.findOneAndUpdate(
       { $or: [{ clerkId }, { email }] },

@@ -12,6 +12,7 @@ import {
   BookOpen,
   Mic,
   BrainCircuit,
+  Shield,
   ShieldCheck,
   ArrowRight,
   Zap,
@@ -325,6 +326,19 @@ const Page = async ({
               </div>
             </div>
           </section>
+
+          {/* Discreet Footer with Admin Portal Link */}
+          <footer className="wrapper pb-12 pt-4 flex flex-col sm:flex-row items-center justify-between text-xs text-[#3d485e]/60 border-t border-black/5 gap-4">
+            <p>© {new Date().getFullYear()} ScholarSync. Engineered by AppDev Group 1.</p>
+            <div className="flex items-center gap-6">
+              <Link
+                href="/admin-login"
+                className="hover:text-[#663820] flex items-center gap-1.5 transition-colors font-semibold"
+              >
+                <Shield size={13} className="text-[#663820]" /> Admin Portal
+              </Link>
+            </div>
+          </footer>
         </div>
       )}
     </div>

@@ -1,13 +1,37 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher([
   "/books(.*)",
-  "/admin(.*)",
   "/api/upload(.*)",
   "/api/log(.*)",
 ]);
 
+const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+
 export default clerkMiddleware(async (auth, req) => {
+  // Public admin portal login route - bypass all checks
+  if (req.nextUrl.pathname.startsWith("/admin-login")) {
+    return;
+  }
+
+  // Handle /admin routes
+  if (isAdminRoute(req)) {
+    // 1. Direct access if custom admin cookie is active
+    const adminSession = req.cookies.get("admin_session")?.value;
+    if (adminSession === "authenticated") {
+      return;
+    }
+
+    // 2. Otherwise check Clerk session
+    const { userId } = await auth();
+    if (!userId) {
+      // Direct unauthenticated users to the dedicated admin login
+      const loginUrl = new URL("/admin-login", req.url);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
