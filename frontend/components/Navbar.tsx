@@ -109,14 +109,28 @@ const Navbar = () => {
                     {session?.firstName} {isAdmin && "(Admin)"}
                   </span>
                 </div>
-                <SignOutButton redirectUrl="/sign-in">
+                {session?.userId === "admin_standalone" ? (
                   <button
+                    onClick={async () => {
+                      const { logoutAdmin } = await import("@/lib/actions/admin.actions");
+                      await logoutAdmin();
+                      window.location.href = "/admin-login";
+                    }}
                     className="p-2 text-gray-500 hover:text-red-600 transition-colors"
-                    title="Logout"
+                    title="Admin Logout"
                   >
                     <LogOut size={20} />
                   </button>
-                </SignOutButton>
+                ) : (
+                  <SignOutButton redirectUrl="/sign-in">
+                    <button
+                      className="p-2 text-gray-500 hover:text-red-600 transition-colors"
+                      title="Logout"
+                    >
+                      <LogOut size={20} />
+                    </button>
+                  </SignOutButton>
+                )}
               </div>
             )}
           </div>

@@ -4,6 +4,21 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_U
 
 export async function getSession() {
   try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    if (cookieStore.get("admin_session")?.value === "authenticated") {
+      return {
+        userId: "admin_standalone",
+        firstName: "System Admin",
+        email: "admin@scholarsync.com",
+        role: "admin",
+      };
+    }
+  } catch (e) {
+    // cookies() unavailable outside request context
+  }
+
+  try {
     const { userId } = await auth();
     if (!userId) return null;
 
@@ -15,6 +30,13 @@ export async function getSession() {
 
     const firstName = clerkUser.firstName || "Scholar";
     const lastName = clerkUser.lastName || "User";
+
+    const adminEmails = [
+      "keith.admin.study@gmail.com",
+      "keithbrianlaranjo82@gmail.com",
+      "keithbrianlaranjo@gmail.com",
+    ];
+    const isHardcodedAdmin = adminEmails.includes(email.toLowerCase());
 
     // Synchronize user profile with backend REST API
     try {
@@ -37,14 +59,14 @@ export async function getSession() {
           userId,
           firstName: data.user?.firstName || firstName,
           email: data.user?.email || email,
-          role: data.user?.role || (email.toLowerCase() === "keith.admin.study@gmail.com" ? "admin" : "user"),
+          role: data.user?.role || (isHardcodedAdmin ? "admin" : "user"),
         };
       }
     } catch (syncError) {
       console.warn("Backend user sync offline:", syncError);
     }
 
-    const role = email.toLowerCase() === "keith.admin.study@gmail.com" ? "admin" : "user";
+    const role = isHardcodedAdmin ? "admin" : "user";
     return {
       userId,
       firstName,

@@ -92,13 +92,14 @@ export const formatDuration = (seconds: number): string => {
 
 export async function parsePDFFile(file: File) {
   try {
-    const pdfjsLib = await import("pdfjs-dist");
+    // @ts-ignore - Import the pre-bundled minified production build to avoid Webpack eval-source-map issues in Next.js dev mode
+    const pdfjsLib: any = await import("pdfjs-dist/build/pdf.min.mjs");
 
     if (typeof window !== "undefined") {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-        "pdfjs-dist/build/pdf.worker.min.mjs",
-        import.meta.url,
-      ).toString();
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        typeof window !== "undefined" && window.location?.origin
+          ? `${window.location.origin}/pdf.worker.min.mjs`
+          : `https://unpkg.com/pdfjs-dist@${pdfjsLib.version || "5.5.207"}/build/pdf.worker.min.mjs`;
     }
 
     // Read file as array buffer
@@ -137,8 +138,8 @@ export async function parsePDFFile(file: File) {
       const page = await pdfDocument.getPage(pageNum);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
-        .filter((item) => "str" in item)
-        .map((item) => (item as { str: string }).str)
+        .filter((item: any) => item && "str" in item)
+        .map((item: any) => item.str)
         .join(" ");
       fullText += pageText + "\n";
     }

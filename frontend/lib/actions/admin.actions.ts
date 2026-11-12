@@ -2,6 +2,7 @@
 
 import { getSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -9,8 +10,43 @@ const BACKEND_URL =
   "http://localhost:5000";
 
 export async function isAdmin() {
+  try {
+    const cookieStore = await cookies();
+    if (cookieStore.get("admin_session")?.value === "authenticated") {
+      return true;
+    }
+  } catch (e) {
+    // cookies() unavailable outside request context
+  }
+
   const session = await getSession();
   return session?.role === "admin";
+}
+
+export async function loginAsAdmin(password: string) {
+  const expectedPassword = process.env.ADMIN_PASSWORD || "admin123";
+
+  if (!password || password.trim() !== expectedPassword.trim()) {
+    return { success: false, error: "Invalid admin password. Please try again." };
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set("admin_session", "authenticated", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: "/",
+  });
+
+  return { success: true };
+}
+
+export async function logoutAdmin() {
+  const cookieStore = await cookies();
+  cookieStore.delete("admin_session");
+  revalidatePath("/admin");
+  return { success: true };
 }
 
 export async function getAllUsersForAdmin() {

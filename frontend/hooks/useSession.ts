@@ -23,14 +23,37 @@ export function useSession() {
     if (!isLoaded) return;
 
     if (!isSignedIn || !user) {
-      setSession(null);
-      setStatus("unauthenticated");
+      // Check if standalone admin portal session is active
+      fetch("/api/admin/session")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.isAdmin) {
+            setSession({
+              userId: "admin_standalone",
+              firstName: "System Admin",
+              email: "admin@scholarsync.com",
+              role: "admin",
+            });
+            setStatus("authenticated");
+          } else {
+            setSession(null);
+            setStatus("unauthenticated");
+          }
+        })
+        .catch(() => {
+          setSession(null);
+          setStatus("unauthenticated");
+        });
       return;
     }
 
     const email = user.primaryEmailAddress?.emailAddress || "";
-    const role =
-      email.toLowerCase() === "keith.admin.study@gmail.com" ? "admin" : "user";
+    const adminEmails = [
+      "keith.admin.study@gmail.com",
+      "keithbrianlaranjo82@gmail.com",
+      "keithbrianlaranjo@gmail.com",
+    ];
+    const role = adminEmails.includes(email.toLowerCase()) ? "admin" : "user";
 
     const sessionData = {
       userId: user.id,
@@ -52,9 +75,18 @@ export function useSession() {
         firstName: user.firstName || "Scholar",
         lastName: user.lastName || "User",
       }),
-    }).catch((err) => {
-      console.warn("Backend sync offline:", err);
-    });
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user?.role) {
+          setSession((prev) =>
+            prev ? { ...prev, role: data.user.role } : prev
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn("Backend sync offline:", err);
+      });
   }, [isLoaded, isSignedIn, user]);
 
   return { session, status };
