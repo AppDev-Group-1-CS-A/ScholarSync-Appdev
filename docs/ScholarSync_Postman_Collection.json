@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "scholarsync-backend-api-v1",
-    "name": "ScholarSync REST API",
-    "description": "Complete Postman collection for testing the ScholarSync Express Backend REST API running on localhost:5000.",
+    "_postman_id": "scholarsync-backend-api-v3",
+    "name": "ScholarSync REST API — Full QA Collection",
+    "description": "ScholarSync QA Postman Collection.\n\n📁 FOLDER 1 — ⭐ QA Demo (10 Endpoints)\nThe 10 graded endpoints. Run in order 1→10 for a clean live demo.\n\n📁 FOLDER 2 — 📦 Full API Reference\nAll remaining endpoints covering full CRUD and all HTTP methods (GET, POST, DELETE, PATCH).\n\nBackend: http://localhost:5000\nSwagger UI: http://localhost:5000/api-docs",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -14,15 +14,41 @@
     {
       "key": "sampleUserId",
       "value": "user_demo_scholar_123",
-      "type": "string"
+      "type": "string",
+      "description": "Replace with your real Clerk user ID from the running app"
+    },
+    {
+      "key": "bookId",
+      "value": "6af0917c98dd544d316390a2",
+      "type": "string",
+      "description": "MongoDB _id of seeded demo book. Auto-updated when you run Step 02."
+    },
+    {
+      "key": "bookSlug",
+      "value": "intro-to-computer-science",
+      "type": "string",
+      "description": "Slug of the demo book. Auto-updated when you run Step 02."
+    },
+    {
+      "key": "userId",
+      "value": "REPLACE_WITH_MONGO_USER_ID",
+      "type": "string",
+      "description": "MongoDB _id of a user (from Step 5: Get All Users)"
+    },
+    {
+      "key": "sessionId",
+      "value": "REPLACE_AFTER_SESSION_START",
+      "type": "string",
+      "description": "Copy sessionId from Start Session response"
     }
   ],
   "item": [
     {
-      "name": "System & Health",
+      "name": "⭐ QA Demo (10 Endpoints)",
+      "description": "Run these in order 1→10 for the graded Postman demo.\n\n⚠️ CRITICAL: After Step 4, copy the returned _id into the {{bookId}} collection variable before running Steps 6–10.",
       "item": [
         {
-          "name": "Health Check",
+          "name": "01 — Health Check",
           "request": {
             "method": "GET",
             "header": [],
@@ -31,16 +57,51 @@
               "host": ["{{baseUrl}}"],
               "path": ["health"]
             },
-            "description": "Verifies that the Express REST backend is running properly on port 5000."
+            "description": "ENDPOINT 1 of 10\nVerifies the Express backend is running on port 5000.\n\nExpected:\n  Status: 200 OK\n  Body: { status: 'ok' }"
           }
-        }
-      ]
-    },
-    {
-      "name": "Books Management",
-      "item": [
+        },
         {
-          "name": "Get All Books (by User ID)",
+          "name": "02 — Seed Demo Book",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const book = res.book || res.data;",
+                  "if (book && book._id) {",
+                  "    pm.collectionVariables.set('bookId', book._id);",
+                  "    console.log('✅ Auto-saved bookId:', book._id);",
+                  "}",
+                  "if (book && book.slug) {",
+                  "    pm.collectionVariables.set('bookSlug', book.slug);",
+                  "    console.log('✅ Auto-saved bookSlug:', book.slug);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{sampleUserId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/books/seed-demo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "books", "seed-demo"]
+            },
+            "description": "ENDPOINT 2 of 10\nSeeds a full demo textbook with pre-built content segments into MongoDB in one click.\n\n✨ AUTO-CAPTURE SCRIPT INCLUDED:\nPostman will automatically capture 'bookId' and 'bookSlug' into collection variables when this request is sent!\n\nExpected:\n  Status: 200 OK or 201 Created\n  Body: { success: true, book: { _id, slug, title, ... } }"
+          }
+        },
+        {
+          "name": "03 — Get All Books (by User ID)",
           "request": {
             "method": "GET",
             "header": [],
@@ -52,149 +113,28 @@
                 {
                   "key": "userId",
                   "value": "{{sampleUserId}}",
-                  "description": "Clerk ID or MongoDB user ID"
-                },
-                {
-                  "key": "search",
-                  "value": "Calculus",
-                  "disabled": true,
-                  "description": "Optional search keyword"
+                  "description": "Clerk user ID whose books to retrieve"
                 }
               ]
             },
-            "description": "Retrieves all indexed books belonging to the specified user."
+            "description": "ENDPOINT 3 of 10\nRetrieves all books for the user. Confirm the demo book from Step 2 appears here. Also shows the slug you'll use in Step 4.\n\nExpected:\n  Status: 200 OK\n  Body: { success: true, data: [ { _id, title, author, slug, ... } ] }"
           }
         },
         {
-          "name": "Check Book Exists (by Title)",
+          "name": "04 — Get Book by Slug",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/books/check/Computer%20Science%20101",
+              "raw": "{{baseUrl}}/api/books/slug/{{bookSlug}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "books", "check", "Computer%20Science%20101"]
+              "path": ["api", "books", "slug", "{{bookSlug}}"]
             },
-            "description": "Checks if a book with the given title slug already exists in MongoDB."
+            "description": "ENDPOINT 4 of 10\nFetches a complete book document by its URL slug. This is exactly what the frontend reader calls when you open /books/[slug] — it loads full book metadata for the reading workspace.\n\n✨ AUTO-RESOLVED:\nUses {{bookSlug}} variable auto-populated by Step 02!\n\nExpected:\n  Status: 200 OK\n  Body: { success: true, data: { _id, title, author, slug, pdfURL, coverURL, ... } }"
           }
         },
         {
-          "name": "Get Book by Slug",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/books/slug/computer-science-101",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "books", "slug", "computer-science-101"]
-            },
-            "description": "Fetches complete book document details by its URL slug."
-          }
-        },
-        {
-          "name": "Create New Book",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "x-user-id",
-                "value": "{{sampleUserId}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Introduction to Operating Systems\",\n  \"author\": \"Andrew S. Tanenbaum\",\n  \"coverURL\": \"https://images.unsplash.com/photo-1532012164546-f432f2e3777a?auto=format&fit=crop&q=80&w=600\",\n  \"pdfURL\": \"https://example.com/sample-os.pdf\",\n  \"fileSize\": 15420000,\n  \"summary\": \"Comprehensive guide on OS processes, scheduling, virtualization, and memory management.\",\n  \"userId\": \"{{sampleUserId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/books",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "books"]
-            },
-            "description": "Registers a new academic textbook or study paper in MongoDB."
-          }
-        },
-        {
-          "name": "Save Book Segments",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"segments\": [\n    {\n      \"content\": \"Operating systems provide an abstraction layer between hardware and user applications. The core component is the kernel.\",\n      \"pageNumber\": 1,\n      \"wordCount\": 20\n    },\n    {\n      \"content\": \"Process scheduling algorithms include First-Come First-Served (FCFS), Shortest Job Next (SJN), and Round Robin (RR).\",\n      \"pageNumber\": 2,\n      \"wordCount\": 18\n    }\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/books/REPLACE_WITH_BOOK_ID/segments",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "books", "REPLACE_WITH_BOOK_ID", "segments"]
-            },
-            "description": "Saves parsed text chunks and page numbers into the BookSegment collection."
-          }
-        }
-      ]
-    },
-    {
-      "name": "AI Study Companion (Groq LLM)",
-      "item": [
-        {
-          "name": "Chat with Book (Contextual RAG Q&A)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"bookId\": \"671500000000000000000001\",\n  \"bookTitle\": \"Introduction to Operating Systems\",\n  \"userMessage\": \"Explain how Round Robin scheduling works and what its trade-offs are.\",\n  \"history\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Hello, can you help me study this book?\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"Hello! I am your AI study companion for Introduction to Operating Systems. Ask me any question about the concepts or chapters.\"\n    }\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/chat",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "chat"]
-            },
-            "description": "Queries the Groq LLaMA model with textbook segment context and chat history to provide academic explanations."
-          }
-        }
-      ]
-    },
-    {
-      "name": "User & Admin Management",
-      "item": [
-        {
-          "name": "Sync User (Clerk to MongoDB)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"clerkId\": \"user_demo_scholar_123\",\n  \"email\": \"student.scholar@university.edu\",\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Rivera\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/sync-user",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "sync-user"]
-            },
-            "description": "Synchronizes authenticated Clerk user records into the local MongoDB User collection."
-          }
-        },
-        {
-          "name": "Get All Users (Admin)",
+          "name": "05 — Get All Users (Admin View)",
           "request": {
             "method": "GET",
             "header": [],
@@ -203,35 +143,369 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "admin", "users"]
             },
-            "description": "Fetches all registered users along with their total indexed book count."
+            "description": "ENDPOINT 5 of 10\nReturns all registered users with their total book count. Used by the admin dashboard to monitor platform usage.\n\nExpected:\n  Status: 200 OK\n  Body: { success: true, data: [ { _id, clerkId, email, role, bookCount, ... } ] }"
+          }
+        },
+        {
+          "name": "06 — Chat with Book (AI Q&A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-user-id", "value": "{{sampleUserId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\",\n  \"bookTitle\": \"Introduction to Computer Science\",\n  \"userMessage\": \"Explain what Big O notation is and how binary search achieves logarithmic time complexity.\",\n  \"history\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat"]
+            },
+            "description": "ENDPOINT 6 of 10\nSends a user question to Groq LLM. The backend retrieves relevant book segments (RAG), builds context, then returns a structured markdown response as an academic tutor.\n\nAlso persists both the user message and AI reply into MongoDB (ChatMessage) — powering Step 9.\n\nExpected:\n  Status: 200 OK\n  Body: { success: true, data: '**Round Robin** is a...' }"
+          }
+        },
+        {
+          "name": "07 — Generate Book Summary",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-user-id", "value": "{{sampleUserId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\",\n  \"bookTitle\": \"Introduction to Computer Science\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "summary"]
+            },
+            "description": "ENDPOINT 7 of 10\nGenerates a structured study summary from real book segments via Groq LLM.\n\nReturns markdown with 3 sections:\n  📌 Executive Summary\n  🔑 Key Takeaways\n  📖 Important Terminology\n\nBuilt by: John Vencie R. Sales\nCommit: 'feat: add Groq chapter summary endpoint'\n\nExpected:\n  Status: 200 OK\n  Body: { success: true, data: '### 📌 Executive Summary\\n...' }"
+          }
+        },
+        {
+          "name": "08 — Generate Practice Quiz (5 MCQ)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-user-id", "value": "{{sampleUserId}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\",\n  \"bookTitle\": \"Introduction to Computer Science\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/quiz",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "quiz"]
+            },
+            "description": "ENDPOINT 8 of 10\nGenerates a 5-question multiple choice quiz from real book content via Groq LLM.\n\nResponse Schema:\n{\n  quizTitle: string,\n  questions: [{\n    id: 1-5,\n    question: string,\n    options: [A, B, C, D],\n    correctIndex: 0-3,\n    explanation: string\n  }]\n}\n\nBuilt by: John Vencie R. Sales\nCommit: '[AI-02] AI Flashcard & Multiple Choice Quiz Generator'\n\nExpected:\n  Status: 200 OK\n  Body: { success: true, data: { quizTitle: '...', questions: [...5 items] } }"
+          }
+        },
+        {
+          "name": "09 — Get Chat History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "x-user-id", "value": "{{sampleUserId}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/history/{{bookId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "history", "{{bookId}}"]
+            },
+            "description": "ENDPOINT 9 of 10\nFetches the last 50 chat messages persisted in MongoDB for this book+user. Sorted chronologically.\n\nRun AFTER Step 6 to prove messages were saved and survive page reloads.\n\nBuilt by: John Vencie R. Sales\nCommit: 'feat(chat): persist textbook conversations across sessions'\n\nExpected:\n  Status: 200 OK\n  Body: { success: true, data: [ { role: 'user', content: '...', createdAt: '...' }, ... ] }"
+          }
+        },
+        {
+          "name": "10 — Clear Chat History",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "x-user-id", "value": "{{sampleUserId}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat/history/{{bookId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chat", "history", "{{bookId}}"]
+            },
+            "description": "ENDPOINT 10 of 10\nPermanently deletes all chat messages for this book+user pair from MongoDB.\n\nTip for demo: Run Step 9 AFTER this to confirm the array is now empty — proving DELETE worked.\n\nExpected:\n  Status: 200 OK\n  Body: { success: true, deletedCount: 2 }"
           }
         }
       ]
     },
     {
-      "name": "Study Sessions",
+      "name": "📦 Full API Reference",
+      "description": "All remaining endpoints not in the demo set. Covers full CRUD across Books, Admin, and Sessions — including PATCH methods. Use as backup or if the instructor asks for broader API coverage.",
       "item": [
         {
-          "name": "Start Voice/Study Session",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+          "name": "Books",
+          "item": [
+            {
+              "name": "Check Book Exists (by Title)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/books/check/Introduction%20to%20Operating%20Systems",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "books", "check", "Introduction%20to%20Operating%20Systems"]
+                },
+                "description": "Checks if a book with the given title already exists in MongoDB. Used to prevent duplicate uploads.\n\nExpected:\n  200 OK — { exists: true/false }"
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"userId\": \"{{sampleUserId}}\",\n  \"bookId\": \"671500000000000000000001\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/session/start",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "session", "start"]
+            {
+              "name": "Get Book by Slug",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/books/slug/introduction-to-operating-systems",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "books", "slug", "introduction-to-operating-systems"]
+                },
+                "description": "Fetches a full book document by its URL-safe slug. Used by the frontend reader page /books/[slug].\n\nTip: Get the slug from the response of Step 5 (Get All Books).\n\nExpected:\n  200 OK — { success: true, data: { _id, title, slug, pdfURL, ... } }"
+              }
             },
-            "description": "Initiates a telemetry tracking session for voice tutoring or active reading."
-          }
+            {
+              "name": "Search Book Segments (by keyword)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/books/{{bookId}}/search?q=scheduling&limit=5",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "books", "{{bookId}}", "search"],
+                  "query": [
+                    { "key": "q", "value": "scheduling", "description": "Search keyword" },
+                    { "key": "limit", "value": "5", "description": "Max results (default 5)" }
+                  ]
+                },
+                "description": "Full-text search across a book's stored segments. Returns matching segments sorted by relevance. Powers the RAG (Retrieval-Augmented Generation) chat pipeline.\n\nExpected:\n  200 OK — { success: true, data: [ { content, pageNumber, ... } ] }"
+              }
+            },
+            {
+              "name": "Create New Book (Manual)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "x-user-id", "value": "{{sampleUserId}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Introduction to Algorithms\",\n  \"author\": \"Thomas H. Cormen\",\n  \"coverURL\": \"https://images.unsplash.com/photo-1532012164546-f432f2e3777a?auto=format&fit=crop&q=80&w=600\",\n  \"pdfURL\": \"https://example.com/algorithms.pdf\",\n  \"fileSize\": 18200000,\n  \"summary\": \"Comprehensive treatment of algorithms and data structures.\",\n  \"userId\": \"{{sampleUserId}}\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/books",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "books"]
+                },
+                "description": "Registers a new book in MongoDB manually (without uploading a PDF). Used in the frontend upload flow after the PDF is stored in Vercel Blob.\n\nExpected:\n  201 Created — { success: true, data: { _id, title, slug, ... } }"
+              }
+            },
+            {
+              "name": "Save Book Segments (Bulk)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"segments\": [\n    {\n      \"content\": \"Operating systems provide an abstraction layer between hardware and user applications. The core component is the kernel.\",\n      \"pageNumber\": 1,\n      \"wordCount\": 20\n    },\n    {\n      \"content\": \"Process scheduling algorithms include First-Come First-Served (FCFS), Shortest Job Next (SJN), and Round Robin (RR).\",\n      \"pageNumber\": 2,\n      \"wordCount\": 18\n    },\n    {\n      \"content\": \"Virtual memory allows programs to use more memory than is physically available by using disk storage as an extension of RAM.\",\n      \"pageNumber\": 3,\n      \"wordCount\": 21\n    }\n  ],\n  \"userId\": \"{{sampleUserId}}\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/books/{{bookId}}/segments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "books", "{{bookId}}", "segments"]
+                },
+                "description": "Bulk-saves parsed text chunks with page numbers into the BookSegment collection. Called after a PDF is uploaded and parsed client-side with pdfjs-dist.\n\nExpected:\n  200 OK — { success: true, savedCount: 3 }"
+              }
+            },
+            {
+              "name": "Delete Book",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "x-user-id", "value": "{{sampleUserId}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/books/{{bookId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "books", "{{bookId}}"]
+                },
+                "description": "Permanently deletes a book and all its segments from MongoDB. Also removes the associated PDF from Vercel Blob storage.\n\nExpected:\n  200 OK — { success: true, message: 'Book deleted' }"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin — User Management",
+          "item": [
+            {
+              "name": "Sync User (Clerk → MongoDB)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"clerkId\": \"user_demo_scholar_123\",\n  \"email\": \"john.vencie@scholarsync.dev\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Vencie\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/sync-user",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "sync-user"]
+                },
+                "description": "Creates or upserts a user in MongoDB from Clerk auth data. Called automatically by the app on first login — sending it manually here simulates that webhook.\n\nExpected:\n  Status: 200 OK\n  Body: { success: true, data: { _id, clerkId, email, role, ... } }"
+              }
+            },
+            {
+              "name": "Toggle User Role (PATCH)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/{{userId}}/role",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "users", "{{userId}}", "role"]
+                },
+                "description": "Toggles a user's role between 'user' and 'admin'. Requires the MongoDB _id of the user (get it from Get All Users).\n\nUpdate {{userId}} variable with a real MongoDB _id before running.\n\nExpected:\n  200 OK — { success: true, data: { role: 'admin' } }"
+              }
+            },
+            {
+              "name": "Toggle User Ban (PATCH)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/{{userId}}/ban",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "users", "{{userId}}", "ban"]
+                },
+                "description": "Toggles a user's banned status. A banned user loses access to AI features and book management.\n\nUpdate {{userId}} variable with a real MongoDB _id before running.\n\nExpected:\n  200 OK — { success: true, data: { isBanned: true } }"
+              }
+            },
+            {
+              "name": "Delete User (Admin)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "users", "{{userId}}"]
+                },
+                "description": "Permanently removes a user from the MongoDB User collection.\n\n⚠️ Use with caution — this is irreversible.\n\nExpected:\n  200 OK — { success: true, message: 'User deleted' }"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sessions",
+          "item": [
+            {
+              "name": "Start Voice/Study Session",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{sampleUserId}}\",\n  \"bookId\": \"{{bookId}}\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/session/start",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "session", "start"]
+                },
+                "description": "Starts a telemetry session for voice tutoring or active reading. Returns a sessionId — copy it into {{sessionId}} to use with End Session.\n\nExpected:\n  200 OK — { success: true, sessionId: '...' }"
+              }
+            },
+            {
+              "name": "End Voice/Study Session",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"durationSeconds\": 300\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/session/end",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "session", "end"]
+                },
+                "description": "Closes an active session and records the total duration in seconds.\n\nExpected:\n  200 OK — { success: true, data: { durationSeconds: 300, ... } }"
+              }
+            }
+          ]
+        },
+        {
+          "name": "VAPI Voice Assistant",
+          "item": [
+            {
+              "name": "VAPI Search Book (Voice Query)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"query\": \"What is virtual memory?\",\n  \"bookId\": \"{{bookId}}\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/vapi/search-book",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vapi", "search-book"]
+                },
+                "description": "Webhook endpoint called by the Vapi voice assistant to search book segments in response to a spoken question. Accepts both GET and POST.\n\nExpected:\n  200 OK — { success: true, data: [ ...matching segments ] }"
+              }
+            },
+            {
+              "name": "VAPI Log Event",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"call-ended\",\n  \"userId\": \"{{sampleUserId}}\",\n  \"bookId\": \"{{bookId}}\",\n  \"durationSeconds\": 120\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/vapi/log",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "vapi", "log"]
+                },
+                "description": "Logs a Vapi voice assistant event (e.g. call-started, call-ended) for telemetry and analytics.\n\nExpected:\n  200 OK — { success: true }"
+              }
+            }
+          ]
         }
       ]
     }

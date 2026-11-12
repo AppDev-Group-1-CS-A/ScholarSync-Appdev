@@ -2,6 +2,9 @@
 
 ScholarSync is an AI-powered academic learning workspace engineered to convert static textbooks and PDF documents into interactive, conversational knowledge bases with precise page/paragraph citations and voice tutoring.
 
+> 🚀 **Teammates Quick Start:** Need to install and run the project on your laptop? Read the **[Teammate Local Setup Guide](docs/TEAM_LOCAL_SETUP.md)**.  
+> 🎓 **Grading Prep:** Role checklists and scripted interview questions are in **[docs/grading-prep/](docs/grading-prep/)**.
+
 ---
 
 ## 🏛️ System Architecture: Separated Multi-Tier Structure

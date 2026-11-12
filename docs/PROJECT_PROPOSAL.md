@@ -2,17 +2,17 @@
 
 **Project Title:** ScholarSync: Cross-Platform AI-Powered Interactive Study Companion & Knowledge Workspace  
 
-**Submitted By:** Group 1  
+**Submitted By:** Group 1 (CS-A)  
 **Members & Roles:**  
-- **Keith Brian Laranjo** – Project Lead & Full-Stack System Architect  
-- **Vencie Sales** – Backend REST API & AI Systems Lead Engineer  
-- **Aron Avila** – Frontend & Mobile UI Developer  
-- **Vincel Esguera** – Backend API & Data Operations Specialist  
-- **Jerlyn Valdez** – UI/UX Design & Mobile Usability Specialist  
-- **Crystil Tubog** – Quality Assurance (QA) & System Documentation Specialist  
+- **Keith Brian Laranjo** – Team Leader & Full-Stack System Architect  
+- **Cristyl Tubog** – Project Manager & Master Documentation Lead  
+- **John Vencie R. Sales** – Quality Assurance (QA) & Backend Lead Engineer  
+- **Aron Avila** – Developer (Frontend & UI Lead Engineer)  
+- **Jerlyn Valdez** – UI/UX Design & Mobile Usability Specialist (Developer / QA Support)  
+- **Vincel Esguera** – Data Operations & Sprint Management Specialist (Backend / PM Support)  
 
-**Submitted To:** [Instructor/Professor Name]  
-**Date:** October 2026  
+**Submitted To:** Course Instructor — Application Development  
+**Date:** November 2026  
 
 ---
 
@@ -75,12 +75,12 @@ In higher education and self-directed study, students and researchers routinely 
 
 | Member | Assigned Role | Functional Pod | Primary Modules & Key Deliverables |
 | :--- | :--- | :--- | :--- |
-| **Keith Brian Laranjo** | **Project Lead & Full-Stack System Architect** | Lead & Integration | Full-stack decoupling, repository governance, authentication (Clerk/JWT), PR code reviews, and cross-module integration. |
-| **Vencie Sales** | **Backend REST API & AI Systems Lead** | Backend & AI Pod | Standalone Express server (`localhost:5000`), Groq LLM integration, automated chapter summarization endpoint, and error handling middleware. |
-| **Aron Avila** | **Frontend & Mobile UI Developer** | Frontend & UI Pod | Responsive web reader, mobile slide-out navigation drawer ([#26](https://github.com/AppDev-Group-1/ScholarSync-Appdev/issues/26)), reader appearance controls & themes ([#27](https://github.com/AppDev-Group-1/ScholarSync-Appdev/issues/27)), and Tailwind styling. |
-| **Vincel Esguera** | **Backend API & Data Operations Specialist** | Backend & AI Pod | MongoDB Mongoose schema verification, one-click demo book seeder utility ([#30](https://github.com/AppDev-Group-1/ScholarSync-Appdev/issues/30)), and database collection population. |
-| **Jerlyn Valdez** | **UI/UX Design & Mobile Usability Specialist** | Frontend & UI Pod | Mobile viewport testing, touch target sizing, UI/UX workflow review, user acceptance verification, and frontend co-authoring. |
-| **Crystil Tubog** | **Quality Assurance (QA) & System Documentation** | QA & Docs Pod | Interactive Swagger / OpenAPI documentation ([#28](https://github.com/AppDev-Group-1/ScholarSync-Appdev/issues/28)), API test case design, final defense report, and presentation materials. |
+| **Keith Brian Laranjo** | **Team Leader & Full-Stack System Architect** | Lead & Architecture | Decoupled multi-tier architecture, repository governance, branch protection, authentication (Clerk), and cross-module supervision. |
+| **Cristyl Tubog** | **Project Manager & Documentation Lead** | Management & Docs | GitHub Project Board (Kanban), task prioritization, PR merge gatekeeping (PRs #32, #33, #36, #37, #41, #44), system specifications & proposal maintenance. |
+| **John Vencie R. Sales** | **Quality Assurance (QA) & Backend Lead** | QA & AI Services | 10-endpoint Postman test suite, Groq chapter summary (`POST /api/chat/summary`), 5-question AI quiz generator (`POST /api/chat/quiz`), PR review verification, and testing issue logging. |
+| **Aron Avila** | **Developer (Frontend & UI Lead)** | Frontend & UI | Responsive reader canvas, theme controls (Light/Sepia/Dark mode [#27](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/issues/27)), collapsible study sidebar, fullscreen toggle, and chat conversation history ([#41](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/pull/41)). |
+| **Jerlyn Valdez** | **Developer / QA Specialist (Mobile Usability)** | Frontend & QA Support | Mobile slide-out navigation drawer ([#35](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/pull/35)), mobile drawer state management, scroll locking, and mobile responsive QA testing. |
+| **Vincel Esguera** | **Backend / PM Specialist (Data Operations)** | Backend & PM Support | One-click demo textbook seeder utility ([#30](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/issues/30), PR [#36](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/pull/36)), MongoDB collection verification, and project board task synchronization. |
 
 ---
 

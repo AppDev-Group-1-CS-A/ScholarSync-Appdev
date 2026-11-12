@@ -13,8 +13,8 @@ Interactive OpenAPI 3.0 specification and API testing playground for the Scholar
 - **Admin Governance:** Manage users, roles, and ban controls.
 `,
     contact: {
-      name: "ScholarSync - AppDev Group 1",
-      url: "https://github.com/AppDev-Group-1/ScholarSync-Appdev",
+      name: "ScholarSync - AppDev Group 1 (CS-A)",
+      url: "https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev",
     },
   },
   servers: [
