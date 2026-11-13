@@ -102,15 +102,27 @@ As Project Manager, you must know where all documentation lives and be ready to 
 - **Key Sections to Highlight:**
   - **Section 1: Executive Summary** — Why ScholarSync exists (addressing passive reading fatigue through active recall and contextual AI).
   - **Section 2: Architecture & Tech Stack** — Next.js 19, TypeScript, Express.js, MongoDB, Groq LLM (Llama 3.3 70B), Vapi voice engine.
-  - **Section 3: Project Roadmap & Timeline** — Milestones across Sprint 1 and Sprint 2.
-  - **Section 4: Team Roles & Workload Distribution** — Clear breakdown of all 6 members.
+  - **Section 3: Scope of Work & Features** — Feature matrix and 6-member pod structure.
+  - **Section 4: Resource Requirements** — Tools, environment, and version control strategy.
 
-### 3. Interactive API Documentation (Swagger UI)
+### 3. Sprint Milestones Log (`docs/MILESTONES.md`)
+- **Key Sections to Highlight:**
+  - **Milestone 1 (Sprint 1: Baseline Architecture & MVP):** Decoupled architecture, Express API, MongoDB schemas, basic Groq RAG.
+  - **Milestone 2 (Sprint 2: Core Enhancements & Study Tools):** Reader controls, chat persistence, quiz generator, summary endpoint, demo seeder, admin portal.
+  - **PM Milestone Sign-Off:** Verification table proving zero inconsistencies with GitHub Project Board #3.
+
+### 4. Development Roadmap & Timeline (`docs/ROADMAP.md`)
+- **Key Sections to Highlight:**
+  - **Sprint Progression:** Visual flowchart showing Sprint 1 -> Sprint 2 -> Sprint 3 -> Final Defense.
+  - **Sprint 3 Work Packages:** Export tools, voice telemetry, Capacitor mobile APK, and automated E2E tests.
+  - **Kanban Governance:** 5-column board flow and priority matrix (`high`, `medium`, `low`).
+
+### 5. Interactive API Documentation (Swagger UI)
 - **Live URL:** `http://localhost:5000/api-docs`
 - **Location:** `backend/src/config/swagger.ts`
 - **Why it matters:** Proves the team follows professional software engineering standards; allows live execution of REST routes in the browser.
 
-### 4. Postman API Collection
+### 6. Postman API Collection
 - **Location:** `docs/ScholarSync_Postman_Collection.json`
 - **Why it matters:** Shows API test suites for automated and manual verification.
 
@@ -195,11 +207,13 @@ ROLES & RESPONSIBILITIES:
   • Custodian of Project Documentation (Proposal, README, Swagger)
 
 KEY FILES TO SHOW THE INSTRUCTOR:
-  1. GitHub Projects Board (Browser)
-  2. docs/PROJECT_PROPOSAL.md (System Architecture & Milestones)
-  3. README.md (Root Architecture & Setup)
-  4. http://localhost:5000/api-docs (Swagger UI)
-  5. docs/ScholarSync_Postman_Collection.json (API Suite)
+  1. GitHub Projects Board (Browser) — https://github.com/orgs/AppDev-Group-1-CS-A/projects/3
+  2. docs/MILESTONES.md (Sprint Milestones & Delivered Features Log)
+  3. docs/ROADMAP.md (High-Level Sprint Timeline & Kanban Matrix)
+  4. docs/PROJECT_PROPOSAL.md (System Architecture & Member Roles)
+  5. README.md (Root Architecture & Setup)
+  6. http://localhost:5000/api-docs (Swagger UI)
+  7. docs/ScholarSync_Postman_Collection.json (API Suite)
 
 THE 5 RUBRIC TARGETS (Aiming for 4/4):
   1. Local Testing: Checked out branches, tested npm run dev locally
