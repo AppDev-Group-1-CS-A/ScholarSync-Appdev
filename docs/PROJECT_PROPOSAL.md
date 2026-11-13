@@ -5,11 +5,11 @@
 **Submitted By:** Group 1 (CS-A)  
 **Members & Roles:**  
 - **Keith Brian Laranjo** – Team Leader & Full-Stack System Architect  
-- **Cristyl Tubog** – Project Manager & Master Documentation Lead  
-- **John Vencie R. Sales** – Quality Assurance (QA) & Backend Lead Engineer  
-- **Aron Avila** – Developer (Frontend & UI Lead Engineer)  
-- **Jerlyn Valdez** – UI/UX Design & Mobile Usability Specialist (Developer / QA Support)  
-- **Vincel Esguera** – Data Operations & Sprint Management Specialist (Backend / PM Support)  
+- **John Vencie R. Sales** – Developer (Frontend & Backend Engineer)  
+- **Vincel Esguera** – Developer (Frontend & Backend Engineer)  
+- **Aron Avila** – Project Manager (Documentation & Taskboard Lead)  
+- **Jerlyn Valdez** – Project Manager (Documentation & Taskboard Support)  
+- **Cristyl Tubog** – Quality Assurance (QA) Tester & Review Specialist  
 
 **Submitted To:** Course Instructor — Application Development  
 **Date:** November 2026  
@@ -75,12 +75,12 @@ In higher education and self-directed study, students and researchers routinely 
 
 | Member | Assigned Role | Functional Pod | Primary Modules & Key Deliverables |
 | :--- | :--- | :--- | :--- |
-| **Keith Brian Laranjo** | **Team Leader & Full-Stack System Architect** | Lead & Architecture | Decoupled multi-tier architecture, repository governance, branch protection, authentication (Clerk), and cross-module supervision. |
-| **Cristyl Tubog** | **Project Manager & Documentation Lead** | Management & Docs | GitHub Project Board (Kanban), task prioritization, PR merge gatekeeping (PRs #32, #33, #36, #37, #41, #44), system specifications & proposal maintenance. |
-| **John Vencie R. Sales** | **Quality Assurance (QA) & Backend Lead** | QA & AI Services | 10-endpoint Postman test suite, Groq chapter summary (`POST /api/chat/summary`), 5-question AI quiz generator (`POST /api/chat/quiz`), PR review verification, and testing issue logging. |
-| **Aron Avila** | **Developer (Frontend & UI Lead)** | Frontend & UI | Responsive reader canvas, theme controls (Light/Sepia/Dark mode [#27](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/issues/27)), collapsible study sidebar, fullscreen toggle, and chat conversation history ([#41](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/pull/41)). |
-| **Jerlyn Valdez** | **Developer / QA Specialist (Mobile Usability)** | Frontend & QA Support | Mobile slide-out navigation drawer ([#35](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/pull/35)), mobile drawer state management, scroll locking, and mobile responsive QA testing. |
-| **Vincel Esguera** | **Backend / PM Specialist (Data Operations)** | Backend & PM Support | One-click demo textbook seeder utility ([#30](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/issues/30), PR [#36](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/pull/36)), MongoDB collection verification, and project board task synchronization. |
+| **Keith Brian Laranjo** | **Team Leader & Full-Stack System Architect** | Lead & Architecture | Decoupled multi-tier architecture, repository governance, branch protection, authentication (Clerk), cross-module supervision, and overall project direction. |
+| **John Vencie R. Sales** | **Developer (Frontend & Backend Engineer)** | Development | Feature implementation, Groq chapter summary (`POST /api/chat/summary`), 5-question AI quiz generator (`POST /api/chat/quiz`), responsive reader canvas, and fullscreen toggle. |
+| **Vincel Esguera** | **Developer (Frontend & Backend Engineer)** | Development | One-click demo textbook seeder utility ([#30](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/issues/30), PR [#36](https://github.com/AppDev-Group-1-CS-A/ScholarSync-Appdev/pull/36)), MongoDB collection management, feature development, and UI component implementation. |
+| **Aron Avila** | **Project Manager (Documentation & Taskboard Lead)** | Management & Docs | GitHub Project Board (Kanban), task prioritization, PR merge gatekeeping, system specifications & proposal maintenance, sprint planning, and progress tracking. |
+| **Jerlyn Valdez** | **Project Manager (Documentation & Taskboard Support)** | Management & Docs | Documentation authoring, meeting minutes, task assignment coordination, project timeline management, and deliverable tracking support. |
+| **Cristyl Tubog** | **Quality Assurance (QA) Tester & Review Specialist** | QA & Testing | 10-endpoint Postman test suite, PR review verification, testing issue logging, mobile responsive QA testing, cross-platform validation, and bug reporting. |
 
 ---
 
